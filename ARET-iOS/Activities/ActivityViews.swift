@@ -83,9 +83,22 @@ struct ActivityStatsGrid: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
         .background(
-            .thinMaterial,
-            in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+            Color.white.opacity(0.055),
+            in: RoundedRectangle(
+                cornerRadius: 16,
+                style: .continuous
+            )
         )
+        .overlay {
+            RoundedRectangle(
+                cornerRadius: 16,
+                style: .continuous
+            )
+            .stroke(
+                Color.white.opacity(0.08),
+                lineWidth: 0.7
+            )
+        }
     }
 
     private func formatDuration(_ seconds: Double) -> String {
@@ -147,7 +160,7 @@ struct ActivitySummaryView: View {
                             .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.borderedProminent)
-                        .tint(.orange)
+                        .tint(.aretOrange)
                         .disabled(savedAsRoute)
 
                         if let gpxURL = activityStore.gpxURL(for: activity) {
@@ -167,8 +180,16 @@ struct ActivitySummaryView: View {
                 }
                 .padding()
             }
+            .aretScreenBackground()
             .navigationTitle("Riepilogo")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(
+                    placement: .topBarTrailing
+                ) {
+                    ARETMark(size: 26)
+                }
+            }
         }
     }
 }
@@ -204,9 +225,18 @@ struct ActivitiesView: View {
                         }
                         .onDelete(perform: activityStore.delete)
                     }
+                    .scrollContentBackground(.hidden)
                 }
             }
+            .aretScreenBackground()
             .navigationTitle("Attività")
+            .toolbar {
+                ToolbarItem(
+                    placement: .topBarTrailing
+                ) {
+                    ARETMark(size: 28)
+                }
+            }
         }
     }
 }
@@ -288,7 +318,7 @@ private struct ActivityDetailView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(.orange)
+                .tint(.aretOrange)
 
                 if let gpxURL = activityStore.gpxURL(for: activity) {
                     ShareLink(item: gpxURL) {
@@ -300,8 +330,16 @@ private struct ActivityDetailView: View {
             }
             .padding()
         }
+        .aretScreenBackground()
         .navigationTitle("Dettaglio attività")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(
+                placement: .topBarTrailing
+            ) {
+                ARETMark(size: 26)
+            }
+        }
     }
 }
 
@@ -320,12 +358,16 @@ private struct ActivityRouteMap: View {
             if coordinates.count > 1 {
                 Map(position: $camera) {
                     MapPolyline(coordinates: coordinates)
-                        .stroke(.orange, lineWidth: 5)
+                        .stroke(
+                            .aretOrange,
+                            lineWidth: 5
+                        )
                 }
                 .mapStyle(
-                    .standard(
+                    .hybrid(
                         elevation: .realistic,
-                        emphasis: .muted
+                        pointsOfInterest: .all,
+                        showsTraffic: false
                     )
                 )
                 .mapControls {
