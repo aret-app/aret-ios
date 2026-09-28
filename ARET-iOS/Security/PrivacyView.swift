@@ -48,8 +48,14 @@ struct PrivacyView: View {
 
                     privacyRow(
                         icon: "map.fill",
-                        title: "Mappe",
-                        detail: "La cartografia usa MapKit e i servizi Apple Maps."
+                        title: "Mappe e ricerca località",
+                        detail: "La cartografia e la ricerca delle località usano MapKit e i servizi Apple Maps."
+                    )
+
+                    privacyRow(
+                        icon: "figure.hiking",
+                        title: "Percorsi online",
+                        detail: "Quando avvii esplicitamente una ricerca online, ARET interroga OpenStreetMap/Overpass per i percorsi hiking aperti nella zona cercata."
                     )
 
                     privacyRow(
