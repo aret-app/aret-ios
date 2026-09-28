@@ -6,6 +6,7 @@ enum RouteOrigin: String, Codable, Hashable, Sendable {
     case aretCatalog
     case recordedActivity
     case importedGPX
+    case openStreetMap
 }
 
 struct RouteLibraryItem: Identifiable, Hashable, Sendable {
@@ -45,7 +46,11 @@ private struct SavedRouteRecord: Identifiable, Codable, Hashable {
             subtitle: subtitle ?? (
                 resolvedOrigin == .importedGPX
                 ? "GPX importato"
-                : "Percorso personale"
+                : (
+                    resolvedOrigin == .openStreetMap
+                    ? "OpenStreetMap"
+                    : "Percorso personale"
+                )
             ),
             kind: kind,
             distanceKilometers: distanceKilometers,
@@ -177,6 +182,51 @@ final class RouteLibraryStore: ObservableObject {
         persist()
 
         // Do not activate it automatically.
+        return record.libraryItem
+    }
+
+    @discardableResult
+    func saveOnlineRoute(
+        _ route: RouteLibraryItem
+    ) -> RouteLibraryItem? {
+        guard
+            route.origin == .openStreetMap,
+            route.coordinates.count > 1
+        else {
+            return nil
+        }
+
+        if let existing = savedRouteRecords.first(
+            where: { $0.id == route.id }
+        ) {
+            return existing.libraryItem
+        }
+
+        let record = SavedRouteRecord(
+            id: route.id,
+            name: route.name,
+            createdAt: Date(),
+            kind: route.kind,
+            distanceKilometers:
+                route.distanceKilometers,
+            ascentMeters:
+                route.ascentMeters,
+            minimumAltitudeMeters:
+                route.minimumAltitudeMeters,
+            maximumAltitudeMeters:
+                route.maximumAltitudeMeters,
+            coordinates:
+                route.coordinates,
+            origin: .openStreetMap,
+            subtitle: route.subtitle
+        )
+
+        savedRouteRecords.insert(
+            record,
+            at: 0
+        )
+        persist()
+
         return record.libraryItem
     }
 
