@@ -130,6 +130,10 @@ actor FieldWeatherService {
                 value: String(location.coordinate.longitude)
             ),
             URLQueryItem(
+                name: "elevation",
+                value: String(Int(location.altitude.rounded()))
+            ),
+            URLQueryItem(
                 name: "current",
                 value: "temperature_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m"
             ),
