@@ -747,6 +747,24 @@ struct RoutePlanningView: View {
                 plannedRoute.coordinates.count / 2
             ]
 
+        if let highestPoint =
+            plannedRoute.coordinates
+                .filter { $0.altitude != nil }
+                .max(by: {
+                    ($0.altitude ?? -.infinity) <
+                    ($1.altitude ?? -.infinity)
+                }),
+           let altitude = highestPoint.altitude {
+            return CLLocation(
+                coordinate:
+                    highestPoint.clLocationCoordinate,
+                altitude: altitude,
+                horizontalAccuracy: 1,
+                verticalAccuracy: 1,
+                timestamp: Date()
+            )
+        }
+
         if plannedRoute.maximumAltitudeMeters > 0 {
             return CLLocation(
                 coordinate:
