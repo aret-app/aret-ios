@@ -10,6 +10,9 @@ struct PrivacyView: View {
     @State private var showEraseConfirmation = false
     @State private var showEraseCompleted = false
 
+    @AppStorage("aret.liveActivity.enabled")
+    private var liveActivityEnabled = true
+
     var body: some View {
         NavigationStack {
             List {
@@ -71,6 +74,35 @@ struct PrivacyView: View {
                     )
                 } header: {
                     Text("Servizi esterni")
+                }
+
+                Section {
+                    Toggle(
+                        isOn: $liveActivityEnabled
+                    ) {
+                        Label(
+                            "Live Activity ARET",
+                            systemImage:
+                                "rectangle.inset.filled.and.person.filled"
+                        )
+                    }
+                    .onChange(
+                        of: liveActivityEnabled
+                    ) { _, enabled in
+                        if !enabled {
+                            TrackingLiveActivityController
+                                .shared
+                                .disableAndEndCurrent()
+                        }
+                    }
+
+                    Text(
+                        "Quando è attiva, durante una registrazione il Lock Screen e la Dynamic Island possono mostrare nome attività, durata, distanza, D+, quota e stato. ARET non mostra le coordinate GPS nella Live Activity."
+                    )
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                } header: {
+                    Text("Lock Screen")
                 }
 
                 Section {
