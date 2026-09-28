@@ -1,13 +1,41 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct RoutesView: View {
     @EnvironmentObject private var routeLibrary: RouteLibraryStore
 
     let onSelectRoute: (RouteLibraryItem) -> Void
 
+    @State private var showGPXImporter = false
+    @State private var importedRouteName: String?
+    @State private var importError: String?
+
+    private var gpxType: UTType {
+        UTType(filenameExtension: "gpx") ?? .xml
+    }
+
     var body: some View {
         NavigationStack {
             List {
+                Section {
+                    Button {
+                        showGPXImporter = true
+                    } label: {
+                        Label(
+                            "Importa traccia GPX",
+                            systemImage: "square.and.arrow.down"
+                        )
+                    }
+
+                    Text(
+                        "Il file viene salvato nei tuoi percorsi. Non viene mostrato sulla mappa finché non lo selezioni."
+                    )
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                } header: {
+                    Text("Importa")
+                }
+
                 if let activeRoute = routeLibrary.activeRoute {
                     Section("Percorso attivo") {
                         RouteRow(route: activeRoute, isActive: true) {
@@ -40,7 +68,7 @@ struct RoutesView: View {
                 Section("I miei percorsi") {
                     if routeLibrary.personalRoutes.isEmpty {
                         Text(
-                            "Quando termini un'attività puoi scegliere di salvarla qui per rifarla."
+                            "Qui troverai i GPX importati e le attività che scegli di salvare come percorso."
                         )
                         .font(.footnote)
                         .foregroundStyle(.secondary)
@@ -65,6 +93,65 @@ struct RoutesView: View {
                 }
             }
             .navigationTitle("Percorsi")
+        }
+        .fileImporter(
+            isPresented: $showGPXImporter,
+            allowedContentTypes: [gpxType],
+            allowsMultipleSelection: false
+        ) { result in
+            importGPX(result)
+        }
+        .alert(
+            "GPX importato",
+            isPresented: Binding(
+                get: { importedRouteName != nil },
+                set: { if !$0 { importedRouteName = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(
+                "\(importedRouteName ?? "Percorso") è stato salvato in I miei percorsi."
+            )
+        }
+        .alert(
+            "Importazione non riuscita",
+            isPresented: Binding(
+                get: { importError != nil },
+                set: { if !$0 { importError = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(importError ?? "Errore sconosciuto.")
+        }
+    }
+
+    private func importGPX(_ result: Result<[URL], Error>) {
+        do {
+            guard let url = try result.get().first else { return }
+
+            let didAccess = url.startAccessingSecurityScopedResource()
+            defer {
+                if didAccess {
+                    url.stopAccessingSecurityScopedResource()
+                }
+            }
+
+            let data = try Data(contentsOf: url)
+            let coordinates = try GPXParser().parse(data: data)
+            let routeName = url.deletingPathExtension().lastPathComponent
+
+            guard routeLibrary.saveImportedGPX(
+                name: routeName,
+                coordinates: coordinates
+            ) != nil else {
+                throw GPXParserError.emptyTrack
+            }
+
+            importedRouteName = routeName
+        } catch {
+            importError = error.localizedDescription
         }
     }
 }
