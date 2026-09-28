@@ -110,6 +110,14 @@ enum WeatherCodePresentation {
 actor FieldWeatherService {
     static let shared = FieldWeatherService()
 
+    private let session: URLSession = {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        configuration.urlCache = nil
+        configuration.httpCookieStorage = nil
+        return URLSession(configuration: configuration)
+    }()
+
     func currentWeather(at location: CLLocation) async throws -> WeatherSnapshot {
         let result = try await forecast(at: location)
         return result.current
@@ -167,7 +175,7 @@ actor FieldWeatherService {
             throw URLError(.badURL)
         }
 
-        let (data, response) = try await URLSession.shared.data(from: url)
+        let (data, response) = try await session.data(from: url)
 
         guard
             let http = response as? HTTPURLResponse,
