@@ -19,12 +19,11 @@ struct ARETTrackingLiveActivity: Widget {
                 DynamicIslandExpandedRegion(
                     .leading
                 ) {
-                    Label(
-                        "ARET",
-                        systemImage: "mountain.2.fill"
-                    )
-                    .font(.headline)
-                    .foregroundStyle(.orange)
+                    HStack(spacing: 5) {
+                        ARETMark(size: 22)
+                        Text("ARET")
+                            .font(.headline)
+                    }
                 }
 
                 DynamicIslandExpandedRegion(
@@ -88,10 +87,7 @@ struct ARETTrackingLiveActivity: Widget {
                     }
                 }
             } compactLeading: {
-                Image(
-                    systemName: "mountain.2.fill"
-                )
-                .foregroundStyle(.orange)
+                ARETMark(size: 19)
             } compactTrailing: {
                 Text(
                     context.state.distanceMeters / 1000,
@@ -102,12 +98,9 @@ struct ARETTrackingLiveActivity: Widget {
                 )
                 .font(.caption.monospacedDigit())
             } minimal: {
-                Image(
-                    systemName: "location.fill"
-                )
-                .foregroundStyle(.orange)
+                ARETMark(size: 18)
             }
-            .keylineTint(.orange)
+            .keylineTint(.aretOrange)
         }
     }
 
@@ -123,11 +116,7 @@ struct ARETTrackingLiveActivity: Widget {
         ) {
             HStack {
                 HStack(spacing: 7) {
-                    Image(
-                        systemName:
-                            "mountain.2.fill"
-                    )
-                    .foregroundStyle(.orange)
+                    ARETMark(size: 24)
 
                     Text("ARET")
                         .font(.headline.bold())
