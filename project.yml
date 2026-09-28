@@ -66,3 +66,34 @@ targets:
       path: ARET-Watch/ARETWatch.entitlements
       properties:
         com.apple.developer.healthkit: true
+
+
+schemes:
+  ARET:
+    build:
+      targets:
+        ARET: all
+        ARETWatch: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
+
+  ARETWatch:
+    build:
+      targets:
+        ARETWatch: all
+    run:
+      config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
