@@ -13,60 +13,240 @@ struct RoutePlannerSearchView: View {
     @EnvironmentObject private var routeLibrary: RouteLibraryStore
 
     @State private var searchText = ""
+    @State private var onlineRoutes: [RouteLibraryItem] = []
+    @State private var isSearchingOnline = false
+    @State private var onlineError: String?
 
-    private var routes: [RouteLibraryItem] {
-        let all = routeLibrary.catalogRoutes + routeLibrary.personalRoutes
+    private var localRoutes: [RouteLibraryItem] {
+        let all =
+            routeLibrary.catalogRoutes +
+            routeLibrary.personalRoutes
 
-        guard !searchText.trimmingCharacters(in: .whitespaces).isEmpty else {
+        let trimmed =
+            searchText.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+
+        guard !trimmed.isEmpty else {
             return all
         }
 
         return all.filter {
-            $0.name.localizedCaseInsensitiveContains(searchText) ||
-            $0.subtitle.localizedCaseInsensitiveContains(searchText)
+            $0.name.localizedCaseInsensitiveContains(
+                trimmed
+            ) ||
+            $0.subtitle.localizedCaseInsensitiveContains(
+                trimmed
+            )
         }
     }
 
     var body: some View {
         List {
-            if routes.isEmpty {
-                ContentUnavailableView(
-                    "Nessun percorso trovato",
-                    systemImage: "magnifyingglass",
-                    description: Text(
-                        "Quando il catalogo ARET crescerà potrai cercare montagne, falesie, vie e itinerari da qui."
+            if searchText.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            ).isEmpty {
+                Section {
+                    Text(
+                        "Scrivi una montagna, una località o il nome di un sentiero. ARET cerca prima nella tua libreria e, quando premi Cerca, anche tra i percorsi hiking aperti di OpenStreetMap."
                     )
-                )
-            } else {
-                ForEach(routes) { route in
-                    NavigationLink {
-                        RoutePlanningView(route: route)
-                    } label: {
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text(route.name)
-                                .font(.headline)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                }
+            }
 
-                            Text(route.subtitle)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-
-                            Text(
-                                "\(route.distanceKilometers, specifier: "%.1f") km · +\(route.ascentMeters) m · max \(route.maximumAltitudeMeters) m"
+            if !localRoutes.isEmpty {
+                Section("ARET e miei percorsi") {
+                    ForEach(localRoutes) { route in
+                        NavigationLink {
+                            RoutePlanningView(
+                                route: route
                             )
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        } label: {
+                            plannerRouteRow(route)
                         }
-                        .padding(.vertical, 4)
                     }
+                }
+            }
+
+            if isSearchingOnline {
+                Section("Percorsi online") {
+                    HStack {
+                        ProgressView()
+                        Text(
+                            "Cerco percorsi aperti…"
+                        )
+                        .foregroundStyle(.secondary)
+                    }
+                }
+            } else if !onlineRoutes.isEmpty {
+                Section {
+                    ForEach(onlineRoutes) { route in
+                        NavigationLink {
+                            RoutePlanningView(
+                                route: route
+                            )
+                        } label: {
+                            plannerRouteRow(route)
+                        }
+                    }
+                } header: {
+                    Text("Percorsi online")
+                } footer: {
+                    Text(
+                        "Dati percorso © OpenStreetMap contributors, licenza ODbL. D+ e quota non sono stimati finché la sorgente non fornisce un profilo altimetrico affidabile."
+                    )
+                }
+            }
+
+            if let onlineError {
+                Section("Ricerca online") {
+                    Text(onlineError)
+                        .foregroundStyle(.secondary)
+
+                    Button {
+                        Task {
+                            await searchOnline()
+                        }
+                    } label: {
+                        Label(
+                            "Riprova",
+                            systemImage:
+                                "arrow.clockwise"
+                        )
+                    }
+                }
+            }
+
+            if !searchText.isEmpty &&
+               localRoutes.isEmpty &&
+               onlineRoutes.isEmpty &&
+               !isSearchingOnline &&
+               onlineError == nil {
+                Section {
+                    Text(
+                        "Premi Cerca sulla tastiera per cercare percorsi online nella zona indicata."
+                    )
+                    .foregroundStyle(.secondary)
                 }
             }
         }
         .navigationTitle("Pianifica")
         .searchable(
             text: $searchText,
-            placement: .navigationBarDrawer(displayMode: .always),
-            prompt: "Cerca monte, via o percorso"
+            placement:
+                .navigationBarDrawer(
+                    displayMode: .always
+                ),
+            prompt:
+                "Es. Pania della Croce"
         )
+        .onSubmit(of: .search) {
+            Task {
+                await searchOnline()
+            }
+        }
+        .onChange(of: searchText) {
+            _, _ in
+            onlineRoutes = []
+            onlineError = nil
+        }
+    }
+
+    private func plannerRouteRow(
+        _ route: RouteLibraryItem
+    ) -> some View {
+        VStack(
+            alignment: .leading,
+            spacing: 5
+        ) {
+            HStack {
+                Text(route.name)
+                    .font(.headline)
+
+                if route.origin ==
+                    .openStreetMap {
+                    Text("OSM")
+                        .font(
+                            .caption2
+                            .weight(.bold)
+                        )
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(
+                            .orange.opacity(0.16),
+                            in: Capsule()
+                        )
+                        .foregroundStyle(
+                            .orange
+                        )
+                }
+            }
+
+            Text(route.subtitle)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            if route.origin ==
+                .openStreetMap {
+                Text(
+                    String(
+                        format:
+                            "%.1f km · profilo altimetrico da verificare",
+                        route.distanceKilometers
+                    )
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            } else {
+                Text(
+                    String(
+                        format:
+                            "%.1f km · +%d m · max %d m",
+                        route.distanceKilometers,
+                        route.ascentMeters,
+                        route.maximumAltitudeMeters
+                    )
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    @MainActor
+    private func searchOnline() async {
+        let trimmed =
+            searchText.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+
+        guard !trimmed.isEmpty else {
+            return
+        }
+
+        isSearchingOnline = true
+        onlineError = nil
+        onlineRoutes = []
+
+        do {
+            onlineRoutes =
+                try await
+                OnlineRouteSearchService
+                    .shared
+                    .search(query: trimmed)
+
+            if onlineRoutes.isEmpty {
+                onlineError =
+                    "Nessun percorso hiking OpenStreetMap trovato entro circa 25 km dalla località."
+            }
+        } catch {
+            onlineError =
+                "Ricerca online non riuscita: \(error.localizedDescription)"
+        }
+
+        isSearchingOnline = false
     }
 }
 
