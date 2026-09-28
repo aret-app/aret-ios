@@ -559,7 +559,14 @@ struct ExploreView: View {
             }
         } else {
             locationManager.requestPermission()
-            locationManager.startTracking()
+
+            let activityName =
+                routeLibrary.activeRoute?.name ??
+                "Attività libera"
+
+            locationManager.startTracking(
+                name: activityName
+            )
         }
     }
 
