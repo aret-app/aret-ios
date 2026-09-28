@@ -1,4 +1,5 @@
 import SwiftUI
+import MapKit
 
 struct ActivityStatsGrid: View {
     let activity: RecordedActivity
@@ -120,6 +121,8 @@ struct ActivitySummaryView: View {
                         Text(activity.startedAt.formatted(date: .abbreviated, time: .shortened))
                             .foregroundStyle(.secondary)
                     }
+
+                    ActivityRouteMap(activity: activity)
 
                     ActivityStatsGrid(activity: activity)
 
@@ -270,6 +273,8 @@ private struct ActivityDetailView: View {
                         .foregroundStyle(.secondary)
                 }
 
+                ActivityRouteMap(activity: activity)
+
                 ActivityStatsGrid(activity: activity)
 
                 Button {
@@ -297,5 +302,91 @@ private struct ActivityDetailView: View {
         }
         .navigationTitle("Dettaglio attività")
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+
+private struct ActivityRouteMap: View {
+    let activity: RecordedActivity
+
+    @State private var camera: MapCameraPosition = .automatic
+
+    private var coordinates: [CLLocationCoordinate2D] {
+        activity.points.map(\.coordinate)
+    }
+
+    var body: some View {
+        Group {
+            if coordinates.count > 1 {
+                Map(position: $camera) {
+                    MapPolyline(coordinates: coordinates)
+                        .stroke(.orange, lineWidth: 5)
+                }
+                .mapStyle(
+                    .standard(
+                        elevation: .realistic,
+                        emphasis: .muted
+                    )
+                )
+                .mapControls {
+                    MapCompass()
+                    MapScaleView()
+                }
+                .frame(height: 260)
+                .clipShape(
+                    RoundedRectangle(
+                        cornerRadius: 20,
+                        style: .continuous
+                    )
+                )
+                .overlay(alignment: .topLeading) {
+                    Label(
+                        "Traccia registrata",
+                        systemImage: "location.fill"
+                    )
+                    .font(.caption.weight(.semibold))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 7)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .padding(10)
+                }
+                .onAppear {
+                    fitRoute()
+                }
+            } else {
+                ContentUnavailableView(
+                    "Traccia non disponibile",
+                    systemImage: "map",
+                    description: Text(
+                        "Questa attività non contiene abbastanza punti GPS per disegnare la mappa."
+                    )
+                )
+                .frame(height: 220)
+            }
+        }
+    }
+
+    private func fitRoute() {
+        guard !coordinates.isEmpty else { return }
+
+        let points = coordinates.map(MKMapPoint.init)
+        let minX = points.map(\.x).min() ?? 0
+        let maxX = points.map(\.x).max() ?? 0
+        let minY = points.map(\.y).min() ?? 0
+        let maxY = points.map(\.y).max() ?? 0
+
+        var rect = MKMapRect(
+            x: minX,
+            y: minY,
+            width: max(maxX - minX, 1),
+            height: max(maxY - minY, 1)
+        )
+
+        rect = rect.insetBy(
+            dx: -max(rect.size.width * 0.15, 100),
+            dy: -max(rect.size.height * 0.15, 100)
+        )
+
+        camera = .rect(rect)
     }
 }
