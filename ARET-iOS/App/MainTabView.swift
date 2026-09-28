@@ -9,15 +9,42 @@ private enum ARETTab: Hashable {
 }
 
 struct MainTabView: View {
-    @EnvironmentObject private var routeLibrary: RouteLibraryStore
+    @EnvironmentObject private var routeLibrary:
+        RouteLibraryStore
 
-    @State private var selectedTab: ARETTab = .map
+    @EnvironmentObject private var locationManager:
+        LocationManager
+
+    @EnvironmentObject private var activityStore:
+        ActivityStore
+
+    @EnvironmentObject private var workoutMirrorManager:
+        WorkoutMirrorManager
+
+    @EnvironmentObject private var watchRouteSyncManager:
+        WatchRouteSyncManager
+
+    @State private var selectedTab:
+        ARETTab = .map
+
+    @State private var watchStartedPhoneTracking =
+        false
+
+    @State private var watchTrackingName =
+        "Attività Apple Watch"
+
+    @State private var watchSourceRouteID:
+        String?
 
     var body: some View {
         TabView(selection: $selectedTab) {
             ExploreView()
                 .tabItem {
-                    Label("Mappa", systemImage: "map.fill")
+                    Label(
+                        "Esplora",
+                        systemImage:
+                            "mountain.2.fill"
+                    )
                 }
                 .tag(ARETTab.map)
 
@@ -27,8 +54,9 @@ struct MainTabView: View {
             }
             .tabItem {
                 Label(
-                    "Percorsi",
-                    systemImage: "point.topleft.down.to.point.bottomright.curvepath"
+                    "Itinerari",
+                    systemImage:
+                        "point.topleft.down.to.point.bottomright.curvepath"
                 )
             }
             .tag(ARETTab.routes)
@@ -38,22 +66,123 @@ struct MainTabView: View {
                 selectedTab = .map
             }
             .tabItem {
-                Label("Attività", systemImage: "figure.hiking")
+                Label(
+                    "Attività",
+                    systemImage:
+                        "figure.hiking"
+                )
             }
             .tag(ARETTab.activities)
 
             WeatherView()
                 .tabItem {
-                    Label("Meteo", systemImage: "cloud.sun.fill")
+                    Label(
+                        "Meteo",
+                        systemImage:
+                            "cloud.sun.fill"
+                    )
                 }
                 .tag(ARETTab.weather)
 
             PrivacyView()
                 .tabItem {
-                    Label("Profilo", systemImage: "person.crop.circle.fill")
+                    Label(
+                        "Profilo",
+                        systemImage:
+                            "person.crop.circle.fill"
+                    )
                 }
                 .tag(ARETTab.profile)
         }
-        .tint(.orange)
+        .tint(.aretOrange)
+        .toolbarBackground(
+            .visible,
+            for: .tabBar
+        )
+        .toolbarBackground(
+            Color.black.opacity(0.94),
+            for: .tabBar
+        )
+        .onAppear {
+            watchRouteSyncManager.send(
+                route:
+                    routeLibrary.activeRoute
+            )
+
+            handleWatchWorkoutState(
+                workoutMirrorManager
+                    .isWatchWorkoutActive
+            )
+        }
+        .onChange(
+            of: routeLibrary.activeRoute?.id
+        ) { _, _ in
+            watchRouteSyncManager.send(
+                route:
+                    routeLibrary.activeRoute
+            )
+        }
+        .onChange(
+            of:
+                workoutMirrorManager
+                    .isWatchWorkoutActive
+        ) { _, active in
+            handleWatchWorkoutState(
+                active
+            )
+        }
+    }
+
+    private func handleWatchWorkoutState(
+        _ active: Bool
+    ) {
+        if active {
+            guard
+                !locationManager.isTracking
+            else {
+                return
+            }
+
+            watchTrackingName =
+                routeLibrary.activeRoute?.name ??
+                workoutMirrorManager
+                    .watchActivityName
+
+            watchSourceRouteID =
+                routeLibrary.activeRoute?.id
+
+            locationManager
+                .requestPermission()
+
+            locationManager
+                .startTracking(
+                    name: watchTrackingName
+                )
+
+            watchStartedPhoneTracking =
+                true
+
+            selectedTab = .map
+            return
+        }
+
+        guard
+            watchStartedPhoneTracking,
+            locationManager.isTracking
+        else {
+            return
+        }
+
+        if let activity =
+            locationManager.stopTracking(
+                name: watchTrackingName,
+                sourceRouteID:
+                    watchSourceRouteID
+            ) {
+            activityStore.add(activity)
+        }
+
+        watchStartedPhoneTracking = false
+        watchSourceRouteID = nil
     }
 }
