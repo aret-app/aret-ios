@@ -294,14 +294,41 @@ struct RoutePlanningView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 30)
                 } else if let errorMessage {
-                    ContentUnavailableView(
-                        "Meteo non disponibile",
-                        systemImage: "cloud.slash",
-                        description: Text(errorMessage)
-                    )
+                    VStack(spacing: 12) {
+                        ContentUnavailableView(
+                            "Meteo non disponibile",
+                            systemImage: "cloud.slash",
+                            description: Text(errorMessage)
+                        )
+
+                        Button {
+                            Task {
+                                await loadWeather()
+                            }
+                        } label: {
+                            Label(
+                                "Riprova meteo",
+                                systemImage: "arrow.clockwise"
+                            )
+                        }
+                        .buttonStyle(.bordered)
+                    }
                 }
 
                 levelCompatibilitySection
+
+                if route.origin == .openStreetMap {
+                    Button {
+                        _ = routeLibrary.saveOnlineRoute(route)
+                    } label: {
+                        Label(
+                            "Salva nei miei percorsi",
+                            systemImage: "square.and.arrow.down"
+                        )
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                }
 
                 Button {
                     routeLibrary.select(route)
@@ -349,14 +376,28 @@ struct RoutePlanningView: View {
                     ),
                     icon: "point.topleft.down.to.point.bottomright.curvepath"
                 )
-                infoPill(
-                    "+\(route.ascentMeters) m",
-                    icon: "arrow.up.right"
+
+                if route.ascentMeters > 0 {
+                    infoPill(
+                        "+\(route.ascentMeters) m",
+                        icon: "arrow.up.right"
+                    )
+                }
+
+                if route.maximumAltitudeMeters > 0 {
+                    infoPill(
+                        "\(route.maximumAltitudeMeters) m",
+                        icon: "mountain.2.fill"
+                    )
+                }
+            }
+
+            if route.origin == .openStreetMap {
+                Text(
+                    "Percorso aperto da OpenStreetMap. La geometria è utilizzabile per mappa e meteo; il profilo altimetrico verrà aggiunto quando disponibile da una fonte affidabile."
                 )
-                infoPill(
-                    "\(route.maximumAltitudeMeters) m",
-                    icon: "mountain.2.fill"
-                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
         }
     }
@@ -675,7 +716,8 @@ struct RoutePlanningView: View {
             )
         } catch {
             forecast = nil
-            errorMessage = error.localizedDescription
+            errorMessage =
+                "Non riesco a scaricare le previsioni per questo itinerario: \(error.localizedDescription)"
         }
 
         isLoading = false
