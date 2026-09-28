@@ -120,7 +120,7 @@ actor FieldWeatherService {
             string: "https://api.open-meteo.com/v1/forecast"
         )!
 
-        components.queryItems = [
+        var queryItems = [
             URLQueryItem(
                 name: "latitude",
                 value: String(location.coordinate.latitude)
@@ -128,10 +128,6 @@ actor FieldWeatherService {
             URLQueryItem(
                 name: "longitude",
                 value: String(location.coordinate.longitude)
-            ),
-            URLQueryItem(
-                name: "elevation",
-                value: String(Int(location.altitude.rounded()))
             ),
             URLQueryItem(
                 name: "current",
@@ -151,6 +147,21 @@ actor FieldWeatherService {
             URLQueryItem(name: "precipitation_unit", value: "mm"),
             URLQueryItem(name: "timezone", value: "auto")
         ]
+
+        if location.verticalAccuracy >= 0,
+           abs(location.altitude) > 1 {
+            queryItems.insert(
+                URLQueryItem(
+                    name: "elevation",
+                    value: String(
+                        Int(location.altitude.rounded())
+                    )
+                ),
+                at: 2
+            )
+        }
+
+        components.queryItems = queryItems
 
         guard let url = components.url else {
             throw URLError(.badURL)
