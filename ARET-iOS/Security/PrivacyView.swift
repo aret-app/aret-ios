@@ -161,7 +161,16 @@ struct PrivacyView: View {
                     )
                 }
             }
+            .scrollContentBackground(.hidden)
+            .aretScreenBackground()
             .navigationTitle("Profilo")
+            .toolbar {
+                ToolbarItem(
+                    placement: .topBarTrailing
+                ) {
+                    ARETMark(size: 28)
+                }
+            }
         }
         .confirmationDialog(
             "Eliminare tutti i dati locali ARET?",
@@ -219,7 +228,7 @@ struct PrivacyView: View {
     ) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
-                .foregroundStyle(.orange)
+                .foregroundStyle(.aretOrange)
                 .frame(width: 28)
 
             VStack(alignment: .leading, spacing: 4) {
