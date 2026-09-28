@@ -82,6 +82,7 @@ targets:
         WKApplication: true
         WKBackgroundModes:
           - workout-processing
+        NSLocationWhenInUseUsageDescription: "ARET uses your Watch location during outdoor activities to show altitude, GPS accuracy and elevation gain."
         NSHealthShareUsageDescription: "ARET reads workout metrics such as heart rate to show them during your activity."
         NSHealthUpdateUsageDescription: "ARET saves your hiking and climbing workouts to Apple Health."
     entitlements:
