@@ -14,12 +14,11 @@ final class ActivityStore: ObservableObject {
         )[0]
         .appendingPathComponent("ARET", isDirectory: true)
 
-        try? FileManager.default.createDirectory(
-            at: directory,
-            withIntermediateDirectories: true
-        )
+        try? PrivateStorage.prepareDirectory(directory)
 
         storeURL = directory.appendingPathComponent("activities.json")
+        try? PrivateStorage.hardenExistingFile(storeURL)
+        PrivateStorage.hardenExistingARETGPXFiles()
         load()
     }
 
@@ -45,6 +44,12 @@ final class ActivityStore: ObservableObject {
             guard let url = gpxURL(for: activity) else { continue }
             try? FileManager.default.removeItem(at: url)
         }
+    }
+
+    func deleteAll() {
+        activities.removeAll()
+        try? FileManager.default.removeItem(at: storeURL)
+        PrivateStorage.deleteAllARETGPXFiles()
     }
 
     func gpxURL(for activity: RecordedActivity) -> URL? {
@@ -76,7 +81,7 @@ final class ActivityStore: ObservableObject {
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             let data = try encoder.encode(activities)
-            try data.write(to: storeURL, options: .atomic)
+            try PrivateStorage.writeProtected(data, to: storeURL)
         } catch {
             print("ARET activity persistence error:", error.localizedDescription)
         }
