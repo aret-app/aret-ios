@@ -21,6 +21,7 @@ targets:
     sources:
       - path: ARET-iOS
       - path: ARET-Core
+      - path: ARET-Shared
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.lorenzopieri99.aret
@@ -34,6 +35,7 @@ targets:
         NSHealthUpdateUsageDescription: "ARET connects your recorded mountain workout with Apple Health."
         UIBackgroundModes:
           - location
+        NSSupportsLiveActivities: true
         UILaunchScreen: {}
     entitlements:
       path: ARET-iOS/ARET.entitlements
@@ -42,6 +44,26 @@ targets:
     dependencies:
       - target: ARETWatch
         embed: true
+      - target: ARETLiveActivity
+        embed: true
+
+  ARETLiveActivity:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: ARET-LiveActivity
+      - path: ARET-Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lorenzopieri99.aret.liveactivity
+        APPLICATION_EXTENSION_API_ONLY: YES
+        SKIP_INSTALL: YES
+    info:
+      path: ARET-LiveActivity/Info.plist
+      properties:
+        CFBundleDisplayName: ARET Live
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
 
   ARETWatch:
     type: application
@@ -74,6 +96,7 @@ schemes:
       targets:
         ARET: all
         ARETWatch: all
+        ARETLiveActivity: all
     run:
       config: Debug
     test:
