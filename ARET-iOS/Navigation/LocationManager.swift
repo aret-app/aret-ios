@@ -213,11 +213,13 @@ extension LocationManager: CLLocationManagerDelegate {
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         let status = manager.authorizationStatus
 
-        Task { @MainActor in
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+
             authorizationStatus = status
 
             if status == .authorizedAlways || status == .authorizedWhenInUse {
-                manager.startUpdatingLocation()
+                self.manager.startUpdatingLocation()
             }
         }
     }
