@@ -25,7 +25,7 @@ final class OnlineRouteSearchService {
 
         let overpassQuery = """
         [out:json][timeout:25];
-        relation(around:25000,(center.latitude),(center.longitude))
+        relation(around:25000,\(center.latitude),\(center.longitude))
           ["type"="route"]
           ["route"~"^(hiking|foot)$"];
         out tags center geom;
