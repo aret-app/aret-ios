@@ -57,6 +57,7 @@ targets:
       properties:
         CFBundleDisplayName: ARET
         WKCompanionAppBundleIdentifier: com.lorenzopieri99.aret
+        WKApplication: true
         WKBackgroundModes:
           - workout-processing
         NSHealthShareUsageDescription: "ARET reads workout metrics such as heart rate to show them during your activity."
