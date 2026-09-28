@@ -72,6 +72,12 @@ struct PrivacyView: View {
                         title: "Apple Health",
                         detail: "Workout, battito e distanza del Watch passano tramite HealthKit. ARET non li carica su un proprio server."
                     )
+
+                    privacyRow(
+                        icon: "applewatch",
+                        title: "Sincronizzazione Apple Watch",
+                        detail: "L'avvio workout viene sincronizzato con l'iPhone tramite HealthKit e il percorso selezionato viene trasferito direttamente al Watch tramite WatchConnectivity. ARET non usa un server per questo scambio."
+                    )
                 } header: {
                     Text("Servizi esterni")
                 }
