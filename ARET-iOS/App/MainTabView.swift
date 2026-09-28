@@ -4,6 +4,7 @@ private enum ARETTab: Hashable {
     case map
     case routes
     case activities
+    case weather
 }
 
 struct MainTabView: View {
@@ -24,7 +25,10 @@ struct MainTabView: View {
                 selectedTab = .map
             }
             .tabItem {
-                Label("Percorsi", systemImage: "point.topleft.down.to.point.bottomright.curvepath")
+                Label(
+                    "Percorsi",
+                    systemImage: "point.topleft.down.to.point.bottomright.curvepath"
+                )
             }
             .tag(ARETTab.routes)
 
@@ -36,6 +40,12 @@ struct MainTabView: View {
                 Label("Attività", systemImage: "figure.hiking")
             }
             .tag(ARETTab.activities)
+
+            WeatherView()
+                .tabItem {
+                    Label("Meteo", systemImage: "cloud.sun.fill")
+                }
+                .tag(ARETTab.weather)
         }
         .tint(.orange)
     }
