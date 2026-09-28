@@ -18,6 +18,7 @@ struct ExploreView: View {
     @State private var showEmergency = false
     @State private var showGPXImporter = false
     @State private var routeCoordinates: [CLLocationCoordinate2D] = []
+    @State private var activeRoute: CatalogRoute?
     @State private var weather: WeatherSnapshot?
     @State private var weatherError: String?
 
@@ -66,6 +67,21 @@ struct ExploreView: View {
 
             VStack(spacing: 12) {
                 header
+
+                if let activeRoute {
+                    HStack(spacing: 10) {
+                        Image(systemName: "figure.hiking")
+                            .foregroundStyle(.orange)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(activeRoute.name)
+                                .font(.subheadline.weight(.semibold))
+                            Text("\(activeRoute.distanceKilometers, specifier: "%.1f") km · +\(activeRoute.ascentMeters) m · max \(activeRoute.maximumAltitudeMeters) m")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                    }
+                }
 
                 if let offRouteDistance, offRouteDistance > 75 {
                     Label(
@@ -150,6 +166,9 @@ struct ExploreView: View {
         ) { result in
             importGPX(result)
         }
+        .task {
+            loadBuiltInFieldTestRouteIfNeeded()
+        }
         .task(id: weatherRefreshKey) {
             await refreshWeather()
         }
@@ -221,10 +240,20 @@ struct ExploreView: View {
             let coordinates = try GPXParser().parse(data: data)
 
             routeCoordinates = coordinates.map(\.clLocationCoordinate)
+            activeRoute = nil
             fitCameraToRoute()
         } catch {
             print("ARET GPX import error:", error.localizedDescription)
         }
+    }
+
+    private func loadBuiltInFieldTestRouteIfNeeded() {
+        guard routeCoordinates.isEmpty else { return }
+
+        let route = BuiltInRouteCatalog.saturdayFieldTest
+        activeRoute = route
+        routeCoordinates = route.coordinates
+        fitCameraToRoute()
     }
 
     private func fitCameraToRoute() {
