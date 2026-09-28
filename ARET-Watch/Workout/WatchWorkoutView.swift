@@ -4,7 +4,7 @@ struct WatchWorkoutView: View {
     @EnvironmentObject private var workoutManager: WatchWorkoutManager
 
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 9) {
             if workoutManager.isRunning {
                 Text("ARET")
                     .font(.caption.weight(.bold))
@@ -13,14 +13,29 @@ struct WatchWorkoutView: View {
                 Text(workoutManager.elapsedTime, format: .time(pattern: .hourMinuteSecond))
                     .font(.title3.monospacedDigit())
 
-                HStack {
-                    Image(systemName: "heart.fill")
-                        .foregroundStyle(.red)
-                    Text("\(Int(workoutManager.heartRate))")
-                        .font(.title2.monospacedDigit())
-                    Text("bpm")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                HStack(spacing: 12) {
+                    VStack(spacing: 2) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "heart.fill")
+                                .foregroundStyle(.red)
+                            Text("\(Int(workoutManager.heartRate))")
+                                .monospacedDigit()
+                        }
+                        Text("bpm")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    VStack(spacing: 2) {
+                        Text(
+                            workoutManager.distanceMeters / 1000,
+                            format: .number.precision(.fractionLength(2))
+                        )
+                        .monospacedDigit()
+                        Text("km")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
                 Button("Stop", role: .destructive) {
