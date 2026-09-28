@@ -276,6 +276,7 @@ private struct ActivityDetailView: View {
                     guard let route = routeLibrary.saveActivityAsRoute(activity) else {
                         return
                     }
+                    routeLibrary.select(route)
                     onOpenRoute(route)
                 } label: {
                     Label("Usa come percorso", systemImage: "repeat")
