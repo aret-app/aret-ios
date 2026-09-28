@@ -55,7 +55,13 @@ struct PrivacyView: View {
                     privacyRow(
                         icon: "figure.hiking",
                         title: "Percorsi online",
-                        detail: "Quando avvii esplicitamente una ricerca online, ARET interroga OpenStreetMap/Overpass per i percorsi hiking aperti nella zona cercata."
+                        detail: "Quando avvii esplicitamente una ricerca online, ARET interroga OpenStreetMap/Overpass per i percorsi hiking aperti nella zona cercata. Non invia la tua cronologia attività."
+                    )
+
+                    privacyRow(
+                        icon: "mountain.2.fill",
+                        title: "Profilo altimetrico DEM",
+                        detail: "Quando apri un percorso online OSM, ARET invia a Open-Meteo un campionamento delle coordinate pubbliche di quel percorso per ottenere le quote Copernicus DEM. Le tue attività registrate e i GPX personali non vengono inviati automaticamente al servizio DEM."
                     )
 
                     privacyRow(
