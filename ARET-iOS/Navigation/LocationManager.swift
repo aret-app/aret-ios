@@ -10,10 +10,13 @@ final class LocationManager: NSObject, ObservableObject {
     @Published private(set) var isTracking = false
     @Published private(set) var distanceMeters: CLLocationDistance = 0
     @Published private(set) var positiveElevationMeters: CLLocationDistance = 0
+    @Published private(set) var negativeElevationMeters: CLLocationDistance = 0
+    @Published private(set) var currentSpeedMPS: Double = 0
+    @Published private(set) var maximumSpeedMPS: Double = 0
+    @Published private(set) var trackingStartedAt: Date?
 
     private let manager = CLLocationManager()
 
-    private var trackingStartedAt: Date?
     private var lastRecordedLocation: CLLocation?
     private var elevationReference: Double?
 
@@ -55,6 +58,9 @@ final class LocationManager: NSObject, ObservableObject {
         recordedLocations.removeAll(keepingCapacity: true)
         distanceMeters = 0
         positiveElevationMeters = 0
+        negativeElevationMeters = 0
+        currentSpeedMPS = 0
+        maximumSpeedMPS = 0
         lastRecordedLocation = nil
         elevationReference = nil
         trackingStartedAt = Date()
@@ -87,6 +93,9 @@ final class LocationManager: NSObject, ObservableObject {
             recordedLocations.removeAll()
             distanceMeters = 0
             positiveElevationMeters = 0
+            negativeElevationMeters = 0
+            currentSpeedMPS = 0
+            maximumSpeedMPS = 0
         }
 
         guard recordedLocations.count > 1 else {
@@ -134,6 +143,16 @@ final class LocationManager: NSObject, ObservableObject {
             // Reject obvious GPS teleportation.
             if segmentSpeed <= 15 {
                 distanceMeters += segmentDistance
+
+                let measuredSpeed = candidate.speed >= 0
+                    ? candidate.speed
+                    : segmentSpeed
+
+                currentSpeedMPS = measuredSpeed
+                maximumSpeedMPS = max(
+                    maximumSpeedMPS,
+                    measuredSpeed
+                )
             }
         }
 
@@ -146,6 +165,8 @@ final class LocationManager: NSObject, ObservableObject {
                 if abs(delta) >= 2.5 {
                     if delta > 0 {
                         positiveElevationMeters += delta
+                    } else {
+                        negativeElevationMeters += abs(delta)
                     }
                     elevationReference = candidate.altitude
                 }
