@@ -2,6 +2,7 @@ import Foundation
 import HealthKit
 import CoreLocation
 import Combine
+import WatchKit
 
 enum ARETWatchActivityMode:
     String,
@@ -64,6 +65,13 @@ final class WatchWorkoutManager:
     @Published private(set) var altitudeMeters: Double?
     @Published private(set) var ascentMeters: Double = 0
     @Published private(set) var gpsAccuracyMeters: Double?
+    @Published private(set) var latitude: Double?
+    @Published private(set) var longitude: Double?
+
+    @Published private(set) var navigationRouteName: String?
+    @Published private(set) var distanceToRouteMeters: Double?
+    @Published private(set) var remainingRouteMeters: Double?
+    @Published private(set) var isOffRoute = false
 
     private let healthStore = HKHealthStore()
     private let locationManager = CLLocationManager()
@@ -73,6 +81,9 @@ final class WatchWorkoutManager:
     private var timer: Timer?
     private var startedAt: Date?
     private var elevationReference: Double?
+
+    private var navigationCoordinates: [ARETCoordinate] = []
+    private var lastOffRouteHapticAt: Date?
 
     override init() {
         super.init()
@@ -165,7 +176,13 @@ final class WatchWorkoutManager:
         altitudeMeters = nil
         ascentMeters = 0
         gpsAccuracyMeters = nil
+        latitude = nil
+        longitude = nil
         elevationReference = nil
+        distanceToRouteMeters = nil
+        remainingRouteMeters = nil
+        isOffRoute = false
+        lastOffRouteHapticAt = nil
 
         if mode.locationType == .outdoor {
             switch locationManager
@@ -219,6 +236,20 @@ final class WatchWorkoutManager:
         session?.end()
     }
 
+    func setNavigationRoute(
+        name: String?,
+        coordinates: [ARETCoordinate]
+    ) {
+        navigationRouteName = name
+        navigationCoordinates = coordinates
+
+        if coordinates.count < 2 {
+            distanceToRouteMeters = nil
+            remainingRouteMeters = nil
+            isOffRoute = false
+        }
+    }
+
     private func startTimer() {
         timer?.invalidate()
 
@@ -256,6 +287,14 @@ final class WatchWorkoutManager:
         altitudeMeters = location.altitude
         gpsAccuracyMeters =
             location.horizontalAccuracy
+        latitude =
+            location.coordinate.latitude
+        longitude =
+            location.coordinate.longitude
+
+        updateNavigation(
+            for: location
+        )
 
         guard
             location.verticalAccuracy >= 0,
@@ -282,6 +321,101 @@ final class WatchWorkoutManager:
             elevationReference =
                 location.altitude
         }
+    }
+
+    private func updateNavigation(
+        for location: CLLocation
+    ) {
+        guard
+            navigationCoordinates.count >= 2
+        else {
+            distanceToRouteMeters = nil
+            remainingRouteMeters = nil
+            isOffRoute = false
+            return
+        }
+
+        distanceToRouteMeters =
+            RouteDistanceCalculator.distance(
+                from: location.coordinate,
+                to: navigationCoordinates
+            )
+
+        var nearestIndex = 0
+        var nearestDistance =
+            Double.greatestFiniteMagnitude
+
+        for (
+            index,
+            coordinate
+        ) in navigationCoordinates.enumerated() {
+            let distance =
+                location.distance(
+                    from: CLLocation(
+                        latitude:
+                            coordinate.latitude,
+                        longitude:
+                            coordinate.longitude
+                    )
+                )
+
+            if distance < nearestDistance {
+                nearestDistance = distance
+                nearestIndex = index
+            }
+        }
+
+        var remaining = 0.0
+
+        if nearestIndex <
+            navigationCoordinates.count - 1 {
+            for index in
+                nearestIndex..<
+                (navigationCoordinates.count - 1) {
+                let first =
+                    navigationCoordinates[index]
+                let second =
+                    navigationCoordinates[index + 1]
+
+                remaining += CLLocation(
+                    latitude: first.latitude,
+                    longitude: first.longitude
+                )
+                .distance(
+                    from: CLLocation(
+                        latitude: second.latitude,
+                        longitude: second.longitude
+                    )
+                )
+            }
+        }
+
+        remainingRouteMeters = remaining
+
+        let offRoute =
+            (distanceToRouteMeters ?? 0) > 75
+
+        if offRoute && !isOffRoute {
+            playOffRouteHapticIfNeeded()
+        }
+
+        isOffRoute = offRoute
+    }
+
+    private func playOffRouteHapticIfNeeded() {
+        let now = Date()
+
+        if let lastOffRouteHapticAt,
+           now.timeIntervalSince(
+               lastOffRouteHapticAt
+           ) < 60 {
+            return
+        }
+
+        lastOffRouteHapticAt = now
+
+        WKInterfaceDevice.current()
+            .play(.notification)
     }
 }
 
