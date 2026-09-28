@@ -5,6 +5,7 @@ private enum ARETTab: Hashable {
     case routes
     case activities
     case weather
+    case profile
 }
 
 struct MainTabView: View {
@@ -46,6 +47,12 @@ struct MainTabView: View {
                     Label("Meteo", systemImage: "cloud.sun.fill")
                 }
                 .tag(ARETTab.weather)
+
+            PrivacyView()
+                .tabItem {
+                    Label("Profilo", systemImage: "person.crop.circle.fill")
+                }
+                .tag(ARETTab.profile)
         }
         .tint(.orange)
     }
