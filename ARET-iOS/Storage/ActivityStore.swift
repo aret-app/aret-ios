@@ -35,7 +35,10 @@ final class ActivityStore: ObservableObject {
             activities.indices.contains(index) ? activities[index] : nil
         }
 
-        activities.remove(atOffsets: offsets)
+        for index in offsets.sorted(by: >) {
+            guard activities.indices.contains(index) else { continue }
+            activities.remove(at: index)
+        }
         persist()
 
         for activity in removed {
