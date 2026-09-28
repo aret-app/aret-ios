@@ -72,12 +72,10 @@ final class RouteLibraryStore: ObservableObject {
         )[0]
         .appendingPathComponent("ARET", isDirectory: true)
 
-        try? FileManager.default.createDirectory(
-            at: directory,
-            withIntermediateDirectories: true
-        )
+        try? PrivateStorage.prepareDirectory(directory)
 
         storeURL = directory.appendingPathComponent("saved-routes.json")
+        try? PrivateStorage.hardenExistingFile(storeURL)
         load()
 
         // A route appears on the map only after an explicit user selection.
@@ -182,6 +180,12 @@ final class RouteLibraryStore: ObservableObject {
         return record.libraryItem
     }
 
+    func deleteAllPersonalRoutes() {
+        savedRouteRecords.removeAll()
+        activeRoute = nil
+        try? FileManager.default.removeItem(at: storeURL)
+    }
+
     func deletePersonalRoute(_ route: RouteLibraryItem) {
         guard route.origin != .aretCatalog else { return }
 
@@ -266,7 +270,7 @@ final class RouteLibraryStore: ObservableObject {
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             let data = try encoder.encode(savedRouteRecords)
-            try data.write(to: storeURL, options: .atomic)
+            try PrivateStorage.writeProtected(data, to: storeURL)
         } catch {
             print(
                 "ARET route persistence error:",
