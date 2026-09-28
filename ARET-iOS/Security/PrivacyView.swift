@@ -43,7 +43,7 @@ struct PrivacyView: View {
                     privacyRow(
                         icon: "cloud.sun.fill",
                         title: "Meteo",
-                        detail: "ARET invia a Open-Meteo via HTTPS solo un punto latitudine/longitudine necessario alla previsione. Non invia la traccia GPX completa."
+                        detail: "ARET invia a Open-Meteo via HTTPS solo il punto necessario alla previsione. Non invia la traccia GPX completa. Open-Meteo dichiara che i log tecnici possono includere coordinate e vengono eliminati entro 90 giorni."
                     )
 
                     privacyRow(
