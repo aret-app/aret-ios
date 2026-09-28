@@ -70,12 +70,16 @@ open ARET.xcodeproj
 
 In Xcode:
 
-1. Select the **ARET** target and choose your Development Team.
-2. Select the **ARETWatch** target and choose the same Development Team.
-3. Keep **Automatically manage signing** enabled.
-4. Connect/unlock the iPhone and Apple Watch.
-5. Run the iOS app on the physical iPhone.
-6. Accept Location and Health permissions when requested.
+1. Open `ARET.xcodeproj`, press **Command–1**, and select the blue **ARET** project icon in the Project navigator.
+2. In the project editor sidebar, select **ARETWatch** under **TARGETS** (not under **PROJECT**). If the sidebar is hidden, expand it with the button at the top left of the project editor.
+3. Open **Signing & Capabilities**, select **All**, keep **Automatically manage signing** enabled, and choose your Development Team from **Team**.
+4. If the team is missing, open **Xcode → Settings → Accounts**, add your Apple Account, then return to the target and select the team.
+5. Repeat for the **ARET** target, selecting the same team. The repository deliberately does not hard-code a personal `DEVELOPMENT_TEAM`.
+6. Connect/unlock the iPhone and its paired Apple Watch. In the toolbar, choose the **ARET** scheme and your physical iPhone, then use **Product → Build** (**Command–B**) and **Product → Run** (**Command–R**).
+7. To run the Watch app directly, choose the **ARETWatch** scheme and your paired physical Apple Watch, then press **Command–R**.
+8. Accept Location and Health permissions when requested.
+
+After pulling source updates, regenerate with `xcodegen generate` only if the project definition changed or the project is missing. Regeneration can reset team selections made in Xcode; select the team again on both targets afterward.
 
 The Watch workout and HealthKit behavior must be tested on physical Apple devices.
 

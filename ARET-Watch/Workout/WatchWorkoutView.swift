@@ -10,7 +10,7 @@ struct WatchWorkoutView: View {
                     .font(.caption.weight(.bold))
                     .foregroundStyle(.orange)
 
-                Text(workoutManager.elapsedTime, format: .time(pattern: .hourMinuteSecond))
+                Text(Duration.seconds(workoutManager.elapsedTime), format: .time(pattern: .hourMinuteSecond))
                     .font(.title3.monospacedDigit())
 
                 HStack(spacing: 12) {
