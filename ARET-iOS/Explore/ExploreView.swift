@@ -233,11 +233,7 @@ struct ExploreView: View {
                 )
                 .stroke(
                     .aretOrange,
-                    style: StrokeStyle(
-                        lineWidth: 5.5,
-                        lineCap: .round,
-                        lineJoin: .round
-                    )
+                    lineWidth: 5.5
                 )
             }
 
@@ -254,11 +250,7 @@ struct ExploreView: View {
                 )
                 .stroke(
                     .white.opacity(0.92),
-                    style: StrokeStyle(
-                        lineWidth: 3.5,
-                        lineCap: .round,
-                        lineJoin: .round
-                    )
+                    lineWidth: 3.5
                 )
             }
         }
