@@ -1,0 +1,525 @@
+import SwiftUI
+import CoreLocation
+
+enum OutdoorExperienceLevel: String, CaseIterable, Identifiable {
+    case beginner = "Base"
+    case intermediate = "Intermedio"
+    case advanced = "Esperto"
+
+    var id: String { rawValue }
+}
+
+struct RoutePlannerSearchView: View {
+    @EnvironmentObject private var routeLibrary: RouteLibraryStore
+
+    @State private var searchText = ""
+
+    private var routes: [RouteLibraryItem] {
+        let all = routeLibrary.catalogRoutes + routeLibrary.personalRoutes
+
+        guard !searchText.trimmingCharacters(in: .whitespaces).isEmpty else {
+            return all
+        }
+
+        return all.filter {
+            $0.name.localizedCaseInsensitiveContains(searchText) ||
+            $0.subtitle.localizedCaseInsensitiveContains(searchText)
+        }
+    }
+
+    var body: some View {
+        List {
+            if routes.isEmpty {
+                ContentUnavailableView(
+                    "Nessun percorso trovato",
+                    systemImage: "magnifyingglass",
+                    description: Text(
+                        "Quando il catalogo ARET crescerà potrai cercare montagne, falesie, vie e itinerari da qui."
+                    )
+                )
+            } else {
+                ForEach(routes) { route in
+                    NavigationLink {
+                        RoutePlanningView(route: route)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(route.name)
+                                .font(.headline)
+
+                            Text(route.subtitle)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+
+                            Text(
+                                "\(route.distanceKilometers, specifier: "%.1f") km · +\(route.ascentMeters) m · max \(route.maximumAltitudeMeters) m"
+                            )
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+            }
+        }
+        .navigationTitle("Pianifica")
+        .searchable(
+            text: $searchText,
+            placement: .navigationBarDrawer(displayMode: .always),
+            prompt: "Cerca monte, via o percorso"
+        )
+    }
+}
+
+struct RoutePlanningView: View {
+    @EnvironmentObject private var routeLibrary: RouteLibraryStore
+
+    let route: RouteLibraryItem
+
+    @State private var selectedDate = Date()
+    @State private var experienceLevel: OutdoorExperienceLevel = .intermediate
+    @State private var forecast: WeatherForecast?
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+
+    private var dateRange: ClosedRange<Date> {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: Date())
+        let end = calendar.date(byAdding: .day, value: 15, to: start) ?? start
+        return start...end
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                routeHeader
+                planningControls
+
+                if let forecast {
+                    plannedDayWeather(forecast)
+
+                    let hours = hoursForSelectedDate(forecast)
+                    let window = WeatherWindowEngine.bestWindow(
+                        hours: hours,
+                        routeKind: route.kind
+                    )
+
+                    weatherWindowCard(
+                        window: window,
+                        hours: hours
+                    )
+
+                    selectedDayHourly(hours)
+                } else if isLoading {
+                    ProgressView("Aggiornamento previsioni…")
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 30)
+                } else if let errorMessage {
+                    ContentUnavailableView(
+                        "Meteo non disponibile",
+                        systemImage: "cloud.slash",
+                        description: Text(errorMessage)
+                    )
+                }
+
+                levelCompatibilitySection
+
+                Button {
+                    routeLibrary.select(route)
+                } label: {
+                    Label(
+                        "Usa questo percorso sulla mappa",
+                        systemImage: "map.fill"
+                    )
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.orange)
+
+                Text(
+                    "La finestra meteo è un'indicazione automatica basata sulle previsioni orarie e non certifica che la salita sia sicura. Per attività tecniche vanno sempre considerati bollettini ufficiali, condizioni del terreno e valutazione sul posto."
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+            .padding()
+        }
+        .navigationTitle("Pianifica")
+        .navigationBarTitleDisplayMode(.inline)
+        .task(id: selectedDateKeyForTask) {
+            await loadWeather()
+        }
+        .task {
+            await hourlyRefreshLoop()
+        }
+    }
+
+    private var routeHeader: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(route.name)
+                .font(.largeTitle.bold())
+
+            Text(route.subtitle)
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 10) {
+                infoPill(
+                    "\(route.distanceKilometers, specifier: "%.1f") km",
+                    icon: "point.topleft.down.to.point.bottomright.curvepath"
+                )
+                infoPill(
+                    "+\(route.ascentMeters) m",
+                    icon: "arrow.up.right"
+                )
+                infoPill(
+                    "\(route.maximumAltitudeMeters) m",
+                    icon: "mountain.2.fill"
+                )
+            }
+        }
+    }
+
+    private var planningControls: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Quando vuoi andare?")
+                .font(.headline)
+
+            DatePicker(
+                "Data",
+                selection: $selectedDate,
+                in: dateRange,
+                displayedComponents: .date
+            )
+            .datePickerStyle(.compact)
+
+            Divider()
+
+            Text("Il tuo livello")
+                .font(.headline)
+
+            Picker("Livello", selection: $experienceLevel) {
+                ForEach(OutdoorExperienceLevel.allCases) { level in
+                    Text(level.rawValue).tag(level)
+                }
+            }
+            .pickerStyle(.segmented)
+        }
+        .padding(16)
+        .background(
+            .thinMaterial,
+            in: RoundedRectangle(cornerRadius: 20, style: .continuous)
+        )
+    }
+
+    @ViewBuilder
+    private func plannedDayWeather(
+        _ forecast: WeatherForecast
+    ) -> some View {
+        let dayKey = selectedDateKey(
+            timezoneIdentifier: forecast.timezone
+        )
+
+        if let day = forecast.daily.first(where: { $0.rawDate == dayKey }) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Previsione del giorno")
+                    .font(.headline)
+
+                HStack(spacing: 14) {
+                    Image(systemName: day.symbolName)
+                        .font(.system(size: 34))
+                        .symbolRenderingMode(.hierarchical)
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(day.conditionName)
+                            .font(.headline)
+
+                        Text(
+                            "\(Int(day.temperatureMinCelsius.rounded()))° / \(Int(day.temperatureMaxCelsius.rounded()))°"
+                        )
+                        .monospacedDigit()
+                    }
+
+                    Spacer()
+
+                    VStack(alignment: .trailing, spacing: 3) {
+                        Label(
+                            "\(day.precipitationProbabilityMax)%",
+                            systemImage: "drop.fill"
+                        )
+
+                        Label(
+                            "\(Int(day.windGustMaxKPH.rounded())) km/h",
+                            systemImage: "wind"
+                        )
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+            }
+            .padding(16)
+            .background(
+                .ultraThinMaterial,
+                in: RoundedRectangle(cornerRadius: 20, style: .continuous)
+            )
+        } else {
+            ContentUnavailableView(
+                "Previsione non disponibile",
+                systemImage: "calendar.badge.exclamationmark",
+                description: Text(
+                    "La data scelta è fuori dall'orizzonte meteo attualmente disponibile."
+                )
+            )
+        }
+    }
+
+    private func weatherWindowCard(
+        window: WeatherWindow,
+        hours: [HourlyWeather]
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Finestra meteo favorevole")
+                        .font(.headline)
+
+                    Text(window.quality.rawValue)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(
+                            window.quality == .favorable
+                            ? .green
+                            : .orange
+                        )
+                }
+
+                Spacer()
+
+                Image(systemName: "clock.badge.checkmark")
+                    .font(.title2)
+                    .foregroundStyle(.orange)
+            }
+
+            Text(window.timeRangeText)
+                .font(.system(size: 30, weight: .semibold))
+                .monospacedDigit()
+
+            if !window.reasons.isEmpty {
+                Text(window.reasons.joined(separator: " · "))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            if let freezing = representativeFreezingLevel(hours) {
+                Label(
+                    "Zero termico indicativo: \(Int(freezing.rounded())) m",
+                    systemImage: "snowflake"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+
+            Text(
+                "Ricalcolata automaticamente quando arrivano nuove previsioni e almeno ogni ora mentre ARET è aperta."
+            )
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+        }
+        .padding(18)
+        .background(
+            .ultraThinMaterial,
+            in: RoundedRectangle(cornerRadius: 24, style: .continuous)
+        )
+    }
+
+    private func selectedDayHourly(
+        _ hours: [HourlyWeather]
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Previsione oraria")
+                .font(.headline)
+
+            if hours.isEmpty {
+                Text("Nessun dato orario disponibile.")
+                    .foregroundStyle(.secondary)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(hours) { hour in
+                            VStack(spacing: 8) {
+                                Text(hour.timeLabel)
+                                    .font(.caption.weight(.semibold))
+                                    .monospacedDigit()
+
+                                Image(systemName: hour.symbolName)
+                                    .font(.title3)
+
+                                Text(
+                                    "\(Int(hour.temperatureCelsius.rounded()))°"
+                                )
+                                .font(.headline)
+
+                                Label(
+                                    "\(hour.precipitationProbability)%",
+                                    systemImage: "drop.fill"
+                                )
+                                .font(.caption2)
+
+                                Label(
+                                    "\(Int(hour.windGustKPH.rounded()))",
+                                    systemImage: "wind"
+                                )
+                                .font(.caption2)
+                            }
+                            .frame(width: 74)
+                            .padding(.vertical, 11)
+                            .background(
+                                .thinMaterial,
+                                in: RoundedRectangle(
+                                    cornerRadius: 16,
+                                    style: .continuous
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var levelCompatibilitySection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Via più adatta al tuo livello")
+                .font(.headline)
+
+            Text("Livello selezionato: \(experienceLevel.rawValue)")
+                .font(.subheadline.weight(.semibold))
+
+            Text(
+                "ARET userà grado tecnico, terreno, esposizione, protezioni, lunghezza, dislivello e fonti verificate per confrontare le vie verso la stessa meta. In questa beta non inventiamo una raccomandazione tecnica usando solo distanza e D+."
+            )
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+
+            Text(
+                "Impegno fisico del percorso attuale: \(physicalEffortLabel)"
+            )
+            .font(.caption.weight(.semibold))
+        }
+        .padding(16)
+        .background(
+            .thinMaterial,
+            in: RoundedRectangle(cornerRadius: 20, style: .continuous)
+        )
+    }
+
+    private var physicalEffortLabel: String {
+        if route.ascentMeters >= 1_200 || route.distanceKilometers >= 16 {
+            return "elevato"
+        }
+
+        if route.ascentMeters >= 600 || route.distanceKilometers >= 8 {
+            return "medio"
+        }
+
+        return "contenuto"
+    }
+
+    private var selectedDateKeyForTask: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return "\(route.id)-\(formatter.string(from: selectedDate))"
+    }
+
+    private func hoursForSelectedDate(
+        _ forecast: WeatherForecast
+    ) -> [HourlyWeather] {
+        let key = selectedDateKey(
+            timezoneIdentifier: forecast.timezone
+        )
+
+        return forecast.hourly.filter {
+            $0.dateKey == key
+        }
+    }
+
+    private func selectedDateKey(
+        timezoneIdentifier: String
+    ) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.timeZone =
+            TimeZone(identifier: timezoneIdentifier) ?? .current
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: selectedDate)
+    }
+
+    private func representativeFreezingLevel(
+        _ hours: [HourlyWeather]
+    ) -> Double? {
+        let values = hours.compactMap(\.freezingLevelMeters)
+
+        guard !values.isEmpty else { return nil }
+
+        return values.reduce(0, +) / Double(values.count)
+    }
+
+    private func targetLocation() -> CLLocation? {
+        guard !route.coordinates.isEmpty else { return nil }
+
+        let midpoint = route.coordinates[route.coordinates.count / 2]
+
+        return CLLocation(
+            coordinate: midpoint.clLocationCoordinate,
+            altitude: Double(route.maximumAltitudeMeters),
+            horizontalAccuracy: 1,
+            verticalAccuracy: 1,
+            timestamp: Date()
+        )
+    }
+
+    private func loadWeather() async {
+        guard let location = targetLocation() else {
+            forecast = nil
+            errorMessage = "Il percorso non contiene coordinate utilizzabili."
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            forecast = try await FieldWeatherService.shared.forecast(
+                at: location
+            )
+        } catch {
+            forecast = nil
+            errorMessage = error.localizedDescription
+        }
+
+        isLoading = false
+    }
+
+    private func hourlyRefreshLoop() async {
+        while !Task.isCancelled {
+            try? await Task.sleep(
+                nanoseconds: 3_600_000_000_000
+            )
+
+            guard !Task.isCancelled else { return }
+            await loadWeather()
+        }
+    }
+
+    private func infoPill(
+        _ text: String,
+        icon: String
+    ) -> some View {
+        Label(text, systemImage: icon)
+            .font(.caption.weight(.semibold))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(
+                .thinMaterial,
+                in: Capsule()
+            )
+    }
+}
