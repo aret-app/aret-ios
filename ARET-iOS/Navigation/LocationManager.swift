@@ -8,58 +8,163 @@ final class LocationManager: NSObject, ObservableObject {
     @Published private(set) var authorizationStatus: CLAuthorizationStatus = .notDetermined
     @Published private(set) var recordedLocations: [CLLocation] = []
     @Published private(set) var isTracking = false
-    @Published private(set) var lastRecordedGPXURL: URL?
+    @Published private(set) var distanceMeters: CLLocationDistance = 0
+    @Published private(set) var positiveElevationMeters: CLLocationDistance = 0
 
     private let manager = CLLocationManager()
 
+    private var trackingStartedAt: Date?
+    private var lastRecordedLocation: CLLocation?
+    private var elevationReference: Double?
+
     override init() {
         super.init()
+
         manager.delegate = self
         manager.activityType = .fitness
-        manager.desiredAccuracy = kCLLocationAccuracyBest
-        manager.distanceFilter = 5
+
+        // Dense, navigation-grade updates for the active field test.
+        manager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
+        manager.distanceFilter = kCLDistanceFilterNone
         manager.pausesLocationUpdatesAutomatically = false
+
         authorizationStatus = manager.authorizationStatus
+
+        if authorizationStatus == .authorizedAlways ||
+            authorizationStatus == .authorizedWhenInUse {
+            manager.startUpdatingLocation()
+        }
     }
 
     func requestPermission() {
-        manager.requestWhenInUseAuthorization()
+        switch manager.authorizationStatus {
+        case .notDetermined:
+            manager.requestWhenInUseAuthorization()
+
+        case .authorizedAlways, .authorizedWhenInUse:
+            manager.startUpdatingLocation()
+
+        default:
+            break
+        }
     }
 
     func startTracking() {
         guard !isTracking else { return }
+
         recordedLocations.removeAll(keepingCapacity: true)
-        lastRecordedGPXURL = nil
+        distanceMeters = 0
+        positiveElevationMeters = 0
+        lastRecordedLocation = nil
+        elevationReference = nil
+        trackingStartedAt = Date()
+
         isTracking = true
+
         manager.allowsBackgroundLocationUpdates = true
         manager.showsBackgroundLocationIndicator = true
         manager.startUpdatingLocation()
     }
 
-    func stopTracking() {
-        manager.stopUpdatingLocation()
-        manager.allowsBackgroundLocationUpdates = false
+    func stopTracking(
+        name: String,
+        sourceRouteID: String?
+    ) -> RecordedActivity? {
+        guard isTracking else { return nil }
+
         isTracking = false
+        manager.allowsBackgroundLocationUpdates = false
 
-        if recordedLocations.count > 1 {
-            lastRecordedGPXURL = try? saveRecordedTrackAsGPX()
+        let endedAt = Date()
+        let startedAt = trackingStartedAt ?? recordedLocations.first?.timestamp ?? endedAt
+
+        defer {
+            trackingStartedAt = nil
+            lastRecordedLocation = nil
+            elevationReference = nil
+
+            // A completed activity must not remain painted on the live map.
+            recordedLocations.removeAll()
+            distanceMeters = 0
+            positiveElevationMeters = 0
         }
+
+        guard recordedLocations.count > 1 else {
+            return nil
+        }
+
+        let filename = try? saveRecordedTrackAsGPX(
+            locations: recordedLocations,
+            name: name
+        )
+
+        return RecordedActivity.make(
+            name: name,
+            startedAt: startedAt,
+            endedAt: endedAt,
+            locations: recordedLocations,
+            sourceRouteID: sourceRouteID,
+            gpxFilename: filename
+        )
     }
 
-    var distanceMeters: CLLocationDistance {
-        zip(recordedLocations, recordedLocations.dropFirst())
-            .reduce(0) { $0 + $1.0.distance(from: $1.1) }
+    private func acceptRecordedLocation(_ candidate: CLLocation) {
+        guard candidate.horizontalAccuracy >= 0,
+              candidate.horizontalAccuracy <= 50
+        else {
+            return
+        }
+
+        if let last = lastRecordedLocation {
+            let deltaTime = candidate.timestamp.timeIntervalSince(last.timestamp)
+
+            // Ignore duplicates/out-of-order callbacks.
+            guard deltaTime > 0 else { return }
+
+            let segmentDistance = candidate.distance(from: last)
+
+            // Keep dense points like a navigation app, but avoid multiple
+            // essentially identical samples in the same instant.
+            guard deltaTime >= 0.75 || segmentDistance >= 1.0 else {
+                return
+            }
+
+            let segmentSpeed = segmentDistance / deltaTime
+
+            // Reject obvious GPS teleportation.
+            if segmentSpeed <= 15 {
+                distanceMeters += segmentDistance
+            }
+        }
+
+        if candidate.verticalAccuracy >= 0,
+           candidate.verticalAccuracy <= 50 {
+            if let reference = elevationReference {
+                let delta = candidate.altitude - reference
+
+                // Hysteresis prevents altitude noise from becoming fake D+.
+                if abs(delta) >= 2.5 {
+                    if delta > 0 {
+                        positiveElevationMeters += delta
+                    }
+                    elevationReference = candidate.altitude
+                }
+            } else {
+                elevationReference = candidate.altitude
+            }
+        }
+
+        recordedLocations.append(candidate)
+        lastRecordedLocation = candidate
     }
 
-    var positiveElevationMeters: CLLocationDistance {
-        zip(recordedLocations, recordedLocations.dropFirst())
-            .reduce(0) { $0 + max(0, $1.1.altitude - $1.0.altitude) }
-    }
-
-    private func saveRecordedTrackAsGPX() throws -> URL {
+    private func saveRecordedTrackAsGPX(
+        locations: [CLLocation],
+        name: String
+    ) throws -> String {
         let formatter = ISO8601DateFormatter()
 
-        let points = recordedLocations.map { location in
+        let points = locations.map { location in
             """
               <trkpt lat="\(location.coordinate.latitude)" lon="\(location.coordinate.longitude)">
                 <ele>\(location.altitude)</ele>
@@ -69,16 +174,21 @@ final class LocationManager: NSObject, ObservableObject {
         }
         .joined(separator: "\n")
 
+        let escapedName = name
+            .replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
+
         let gpx = """
         <?xml version="1.0" encoding="UTF-8"?>
         <gpx version="1.1" creator="ARET"
              xmlns="http://www.topografix.com/GPX/1/1">
           <metadata>
-            <name>ARET Recorded Track</name>
+            <name>\(escapedName)</name>
             <time>\(formatter.string(from: Date()))</time>
           </metadata>
           <trk>
-            <name>ARET Recorded Track</name>
+            <name>\(escapedName)</name>
             <trkseg>
         \(points)
             </trkseg>
@@ -91,32 +201,49 @@ final class LocationManager: NSObject, ObservableObject {
             in: .userDomainMask
         )[0]
 
-        let nameFormatter = DateFormatter()
-        nameFormatter.dateFormat = "yyyy-MM-dd_HH-mm"
-        let filename = "ARET_\(nameFormatter.string(from: Date())).gpx"
+        let filename = "ARET_\(UUID().uuidString).gpx"
         let url = directory.appendingPathComponent(filename)
 
         try gpx.write(to: url, atomically: true, encoding: .utf8)
-        return url
+        return filename
     }
 }
 
 extension LocationManager: CLLocationManagerDelegate {
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         let status = manager.authorizationStatus
-        Task { @MainActor in authorizationStatus = status }
-    }
 
-    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         Task { @MainActor in
-            guard let newest = locations.last else { return }
-            location = newest
-            guard isTracking, newest.horizontalAccuracy >= 0, newest.horizontalAccuracy <= 50 else { return }
-            recordedLocations.append(newest)
+            authorizationStatus = status
+
+            if status == .authorizedAlways || status == .authorizedWhenInUse {
+                manager.startUpdatingLocation()
+            }
         }
     }
 
-    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+    nonisolated func locationManager(
+        _ manager: CLLocationManager,
+        didUpdateLocations locations: [CLLocation]
+    ) {
+        Task { @MainActor in
+            guard let newest = locations.last else { return }
+            location = newest
+
+            guard isTracking else { return }
+
+            // Core Location may batch several valid samples. Keep all of them
+            // instead of only the last one.
+            for candidate in locations.sorted(by: { $0.timestamp < $1.timestamp }) {
+                acceptRecordedLocation(candidate)
+            }
+        }
+    }
+
+    nonisolated func locationManager(
+        _ manager: CLLocationManager,
+        didFailWithError error: Error
+    ) {
         print("ARET Core Location error:", error.localizedDescription)
     }
 }
