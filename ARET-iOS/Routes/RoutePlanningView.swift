@@ -131,7 +131,16 @@ struct RoutePlannerSearchView: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .aretScreenBackground()
         .navigationTitle("Pianifica")
+        .toolbar {
+            ToolbarItem(
+                placement: .topBarTrailing
+            ) {
+                ARETMark(size: 28)
+            }
+        }
         .searchable(
             text: $searchText,
             placement:
@@ -174,7 +183,7 @@ struct RoutePlannerSearchView: View {
                         .padding(.horizontal, 6)
                         .padding(.vertical, 3)
                         .background(
-                            .orange.opacity(0.16),
+                            .aretOrange.opacity(0.16),
                             in: Capsule()
                         )
                         .foregroundStyle(
@@ -360,7 +369,7 @@ struct RoutePlanningView: View {
                     .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(.orange)
+                .tint(.aretOrange)
 
                 Text(
                     "La finestra meteo è un'indicazione automatica basata sulle previsioni orarie e non certifica che la salita sia sicura. Per attività tecniche vanno sempre considerati bollettini ufficiali, condizioni del terreno e valutazione sul posto."
@@ -370,8 +379,16 @@ struct RoutePlanningView: View {
             }
             .padding()
         }
+        .aretScreenBackground()
         .navigationTitle("Pianifica")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(
+                placement: .topBarTrailing
+            ) {
+                ARETMark(size: 26)
+            }
+        }
         .task(id: selectedDateKeyForTask) {
             await loadWeather()
         }
@@ -569,7 +586,7 @@ struct RoutePlanningView: View {
 
                 Image(systemName: "clock.badge.checkmark")
                     .font(.title2)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(.aretOrange)
             }
 
             Text(window.timeRangeText)
