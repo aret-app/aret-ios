@@ -30,9 +30,15 @@ targets:
         CFBundleDisplayName: ARET
         NSLocationWhenInUseUsageDescription: "ARET uses your location to show your position and record your mountain activity."
         NSLocationAlwaysAndWhenInUseUsageDescription: "ARET can keep recording your active route while the app is in the background."
+        NSHealthShareUsageDescription: "ARET connects to your Apple Watch workout to show your active mountain session."
+        NSHealthUpdateUsageDescription: "ARET connects your recorded mountain workout with Apple Health."
         UIBackgroundModes:
           - location
         UILaunchScreen: {}
+    entitlements:
+      path: ARET-iOS/ARET.entitlements
+      properties:
+        com.apple.developer.healthkit: true
     dependencies:
       - target: ARETWatch
         embed: true
@@ -51,6 +57,8 @@ targets:
       properties:
         CFBundleDisplayName: ARET
         WKCompanionAppBundleIdentifier: com.lorenzopieri99.aret
+        WKBackgroundModes:
+          - workout-processing
         NSHealthShareUsageDescription: "ARET reads workout metrics such as heart rate to show them during your activity."
         NSHealthUpdateUsageDescription: "ARET saves your hiking and climbing workouts to Apple Health."
     entitlements:
