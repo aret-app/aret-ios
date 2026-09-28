@@ -95,8 +95,15 @@ struct WeatherView: View {
                     )
                 }
             }
+            .aretScreenBackground()
             .navigationTitle("Meteo")
             .toolbar {
+                ToolbarItem(
+                    placement: .topBarLeading
+                ) {
+                    ARETMark(size: 28)
+                }
+
                 ToolbarItemGroup(
                     placement: .topBarTrailing
                 ) {
@@ -574,7 +581,7 @@ struct WeatherView: View {
                         "clock.badge.checkmark"
                 )
                 .font(.title2)
-                .foregroundStyle(.orange)
+                .foregroundStyle(.aretOrange)
             }
 
             Text(window.timeRangeText)
