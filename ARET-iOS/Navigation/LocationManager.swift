@@ -225,7 +225,11 @@ final class LocationManager: NSObject, ObservableObject {
         let filename = "ARET_\(UUID().uuidString).gpx"
         let url = directory.appendingPathComponent(filename)
 
-        try gpx.write(to: url, atomically: true, encoding: .utf8)
+        guard let data = gpx.data(using: .utf8) else {
+            throw CocoaError(.fileWriteInapplicableStringEncoding)
+        }
+
+        try PrivateStorage.writeProtected(data, to: url)
         return filename
     }
 }
