@@ -20,6 +20,7 @@ struct WeatherSnapshot: Sendable {
 
 struct HourlyWeather: Identifiable, Sendable {
     let id: String
+    let rawTime: String
     let timeLabel: String
     let temperatureCelsius: Double
     let precipitationProbability: Int
@@ -27,14 +28,28 @@ struct HourlyWeather: Identifiable, Sendable {
     let windSpeedKPH: Double
     let windGustKPH: Double
     let weatherCode: Int
+    let visibilityMeters: Double?
+    let freezingLevelMeters: Double?
 
     var symbolName: String {
         WeatherCodePresentation.symbolName(for: weatherCode)
+    }
+
+    var dateKey: String {
+        String(rawTime.prefix(10))
+    }
+
+    var hour: Int? {
+        guard rawTime.count >= 13 else { return nil }
+        let start = rawTime.index(rawTime.startIndex, offsetBy: 11)
+        let end = rawTime.index(start, offsetBy: 2)
+        return Int(rawTime[start..<end])
     }
 }
 
 struct DailyWeather: Identifiable, Sendable {
     let id: String
+    let rawDate: String
     let dateLabel: String
     let temperatureMaxCelsius: Double
     let temperatureMinCelsius: Double
@@ -120,13 +135,13 @@ actor FieldWeatherService {
             ),
             URLQueryItem(
                 name: "hourly",
-                value: "temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_gusts_10m"
+                value: "temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,visibility,freezing_level_height"
             ),
             URLQueryItem(
                 name: "daily",
                 value: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max"
             ),
-            URLQueryItem(name: "forecast_days", value: "3"),
+            URLQueryItem(name: "forecast_days", value: "16"),
             URLQueryItem(name: "temperature_unit", value: "celsius"),
             URLQueryItem(name: "wind_speed_unit", value: "kmh"),
             URLQueryItem(name: "precipitation_unit", value: "mm"),
@@ -157,7 +172,9 @@ actor FieldWeatherService {
             fetchedAt: Date()
         )
 
-        let currentHourPrefix = currentHourKey()
+        let currentHourPrefix = currentHourKey(
+            timezoneIdentifier: decoded.timezone
+        )
 
         var hourly: [HourlyWeather] = []
 
@@ -181,19 +198,18 @@ actor FieldWeatherService {
             hourly.append(
                 HourlyWeather(
                     id: rawTime,
+                    rawTime: rawTime,
                     timeLabel: hourLabel(from: rawTime),
                     temperatureCelsius: decoded.hourly.temperature2m[index],
                     precipitationProbability: decoded.hourly.precipitationProbability[index],
                     precipitationMM: decoded.hourly.precipitation[index],
                     windSpeedKPH: decoded.hourly.windSpeed10m[index],
                     windGustKPH: decoded.hourly.windGusts10m[index],
-                    weatherCode: decoded.hourly.weatherCode[index]
+                    weatherCode: decoded.hourly.weatherCode[index],
+                    visibilityMeters: decoded.hourly.visibility[safe: index] ?? nil,
+                    freezingLevelMeters: decoded.hourly.freezingLevelHeight[safe: index] ?? nil
                 )
             )
-
-            if hourly.count == 12 {
-                break
-            }
         }
 
         var daily: [DailyWeather] = []
@@ -214,6 +230,7 @@ actor FieldWeatherService {
             daily.append(
                 DailyWeather(
                     id: rawDate,
+                    rawDate: rawDate,
                     dateLabel: dayLabel(from: rawDate, index: index),
                     temperatureMaxCelsius: decoded.daily.temperature2mMax[index],
                     temperatureMinCelsius: decoded.daily.temperature2mMin[index],
@@ -235,10 +252,15 @@ actor FieldWeatherService {
         )
     }
 
-    private func currentHourKey() -> String {
+    private func currentHourKey(
+        timezoneIdentifier: String
+    ) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.timeZone =
+            TimeZone(identifier: timezoneIdentifier) ??
+            .current
         formatter.dateFormat = "yyyy-MM-dd'T'HH:00"
         return formatter.string(from: Date())
     }
@@ -250,7 +272,10 @@ actor FieldWeatherService {
         return String(raw[start..<end])
     }
 
-    private func dayLabel(from raw: String, index: Int) -> String {
+    private func dayLabel(
+        from raw: String,
+        index: Int
+    ) -> String {
         if index == 0 { return "Oggi" }
         if index == 1 { return "Domani" }
 
@@ -303,6 +328,8 @@ private extension FieldWeatherService {
         let weatherCode: [Int]
         let windSpeed10m: [Double]
         let windGusts10m: [Double]
+        let visibility: [Double?]
+        let freezingLevelHeight: [Double?]
 
         enum CodingKeys: String, CodingKey {
             case time
@@ -312,6 +339,8 @@ private extension FieldWeatherService {
             case weatherCode = "weather_code"
             case windSpeed10m = "wind_speed_10m"
             case windGusts10m = "wind_gusts_10m"
+            case visibility
+            case freezingLevelHeight = "freezing_level_height"
         }
     }
 
@@ -333,5 +362,11 @@ private extension FieldWeatherService {
             case windSpeed10mMax = "wind_speed_10m_max"
             case windGusts10mMax = "wind_gusts_10m_max"
         }
+    }
+}
+
+private extension Array {
+    subscript(safe index: Index) -> Element? {
+        indices.contains(index) ? self[index] : nil
     }
 }
