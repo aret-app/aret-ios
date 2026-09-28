@@ -167,13 +167,13 @@ struct MainTabView: View {
         }
 
         guard
-            watchStartedPhoneTracking,
-            locationManager.isTracking
+            watchStartedPhoneTracking
         else {
             return
         }
 
-        if let activity =
+        if locationManager.isTracking,
+           let activity =
             locationManager.stopTracking(
                 name: watchTrackingName,
                 sourceRouteID:
