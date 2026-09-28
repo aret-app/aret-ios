@@ -14,6 +14,14 @@ struct TerrainElevationProfile: Sendable {
 actor TerrainElevationService {
     static let shared = TerrainElevationService()
 
+    private let session: URLSession = {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        configuration.urlCache = nil
+        configuration.httpCookieStorage = nil
+        return URLSession(configuration: configuration)
+    }()
+
     private let maximumSamples = 200
     private let minimumSampleSpacingMeters = 80.0
     private let elevationHysteresisMeters = 5.0
@@ -136,7 +144,7 @@ actor TerrainElevationService {
         }
 
         let (data, response) =
-            try await URLSession.shared.data(
+            try await session.data(
                 from: url
             )
 
