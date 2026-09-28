@@ -22,13 +22,13 @@ struct RoutesView: View {
                         RoutePlannerSearchView()
                     } label: {
                         Label(
-                            "Pianifica salita / escursione",
+                            "Cerca e pianifica percorso",
                             systemImage: "calendar.badge.clock"
                         )
                     }
 
                     Text(
-                        "Cerca un percorso, scegli il giorno e consulta meteo, finestra favorevole e dati utili."
+                        "Cerca nella libreria ARET o online tra i percorsi hiking aperti, poi scegli il giorno e consulta meteo e finestra favorevole."
                     )
                     .font(.footnote)
                     .foregroundStyle(.secondary)
