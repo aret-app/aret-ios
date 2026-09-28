@@ -14,7 +14,14 @@ final class TrackingLiveActivityController {
         name: String,
         startedAt: Date
     ) {
-        guard ActivityAuthorizationInfo().areActivitiesEnabled else {
+        let setting = UserDefaults.standard.object(
+            forKey: "aret.liveActivity.enabled"
+        ) as? Bool ?? true
+
+        guard
+            setting,
+            ActivityAuthorizationInfo().areActivitiesEnabled
+        else {
             return
         }
 
@@ -99,6 +106,34 @@ final class TrackingLiveActivityController {
                 )
             )
         }
+    }
+
+    func disableAndEndCurrent() {
+        guard let activity else { return }
+
+        let state = activity.content.state
+
+        Task {
+            await activity.end(
+                ActivityContent(
+                    state:
+                        ARETTrackingAttributes.ContentState(
+                            distanceMeters:
+                                state.distanceMeters,
+                            ascentMeters:
+                                state.ascentMeters,
+                            altitudeMeters:
+                                state.altitudeMeters,
+                            isTracking: false
+                        ),
+                    staleDate: nil
+                ),
+                dismissalPolicy: .immediate
+            )
+        }
+
+        self.activity = nil
+        lastUpdateAt = nil
     }
 
     func end(
