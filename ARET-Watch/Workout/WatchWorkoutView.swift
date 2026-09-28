@@ -267,6 +267,15 @@ struct WatchWorkoutView: View {
                         )
                         .lineLimit(2)
 
+                    WatchRouteMiniMap(
+                        coordinates:
+                            routeSync.coordinates,
+                        latitude:
+                            workoutManager.latitude,
+                        longitude:
+                            workoutManager.longitude
+                    )
+
                     if workoutManager.isOffRoute {
                         Label(
                             "FUORI TRACCIA",
