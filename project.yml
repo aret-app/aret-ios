@@ -54,6 +54,7 @@ targets:
     sources:
       - path: ARET-LiveActivity
       - path: ARET-Shared
+      - path: ARET-SharedUI
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.lorenzopieri99.aret.liveactivity
