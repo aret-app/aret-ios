@@ -8,10 +8,13 @@ ARET is an Apple-first mountain companion for hiking, climbing and alpinism.
 
 The first field build is intentionally narrow:
 
-- 3D terrain map and live user location
-- GPX import and reference-route overlay
-- off-route distance warning
-- activity tracking with distance, elevation and elapsed time
+- 3D terrain map and live user location with a dedicated recenter control
+- explicit route selection: no route is shown until the user chooses it
+- built-in ARET route catalog plus optional GPX import
+- off-route distance warning only during an active recording
+- dense navigation-grade GPS recording
+- persistent activity history with full statistics
+- optional "save as route to repeat" flow after every activity
 - Apple Watch hiking workout
 - HealthKit heart-rate and distance on Watch
 - Watch-to-iPhone workout session mirroring
@@ -86,8 +89,8 @@ The Watch workout and HealthKit behavior must be tested on physical Apple device
 ## Saturday field-test flow
 
 1. Open ARET on iPhone.
-2. Import a GPX using **GPX**.
-3. Check the white reference route on the 3D terrain.
+2. Open **Percorsi** and choose the field-test route.
+3. Return to **Mappa** and check the white reference route.
 4. Start the hike from ARET on Apple Watch.
 5. Confirm heart rate, elapsed time and distance update on Watch.
 6. Start iPhone route tracking if you want ARET’s orange recorded line.
