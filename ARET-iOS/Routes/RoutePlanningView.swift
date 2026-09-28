@@ -161,7 +161,7 @@ struct RoutePlannerSearchView: View {
             spacing: 5
         ) {
             HStack {
-                Text(route.name)
+                Text(plannedRoute.name)
                     .font(.headline)
 
                 if route.origin ==
@@ -183,7 +183,7 @@ struct RoutePlannerSearchView: View {
                 }
             }
 
-            Text(route.subtitle)
+            Text(plannedRoute.subtitle)
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -193,7 +193,7 @@ struct RoutePlannerSearchView: View {
                     String(
                         format:
                             "%.1f km · profilo altimetrico da verificare",
-                        route.distanceKilometers
+                        plannedRoute.distanceKilometers
                     )
                 )
                 .font(.caption)
@@ -260,6 +260,26 @@ struct RoutePlanningView: View {
     @State private var forecast: WeatherForecast?
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var terrainProfile: TerrainElevationProfile?
+    @State private var isLoadingTerrain = false
+    @State private var terrainError: String?
+
+    private var plannedRoute: RouteLibraryItem {
+        var value = route
+
+        if let terrainProfile {
+            value.ascentMeters =
+                Int(terrainProfile.ascentMeters.rounded())
+            value.minimumAltitudeMeters =
+                Int(terrainProfile.minimumAltitudeMeters.rounded())
+            value.maximumAltitudeMeters =
+                Int(terrainProfile.maximumAltitudeMeters.rounded())
+            value.coordinates =
+                terrainProfile.coordinates
+        }
+
+        return value
+    }
 
     private var dateRange: ClosedRange<Date> {
         let calendar = Calendar.current
@@ -280,7 +300,7 @@ struct RoutePlanningView: View {
                     let hours = hoursForSelectedDate(forecast)
                     let window = WeatherWindowEngine.bestWindow(
                         hours: hours,
-                        routeKind: route.kind
+                        routeKind: plannedRoute.kind
                     )
 
                     weatherWindowCard(
@@ -317,9 +337,9 @@ struct RoutePlanningView: View {
 
                 levelCompatibilitySection
 
-                if route.origin == .openStreetMap {
+                if plannedRoute.origin == .openStreetMap {
                     Button {
-                        _ = routeLibrary.saveOnlineRoute(route)
+                        _ = routeLibrary.saveOnlineRoute(plannedRoute)
                     } label: {
                         Label(
                             "Salva nei miei percorsi",
@@ -331,7 +351,7 @@ struct RoutePlanningView: View {
                 }
 
                 Button {
-                    routeLibrary.select(route)
+                    routeLibrary.select(plannedRoute)
                 } label: {
                     Label(
                         "Usa questo percorso sulla mappa",
@@ -355,6 +375,9 @@ struct RoutePlanningView: View {
         .task(id: selectedDateKeyForTask) {
             await loadWeather()
         }
+        .task(id: route.id) {
+            await loadTerrainProfileIfNeeded()
+        }
         .task {
             await hourlyRefreshLoop()
         }
@@ -377,27 +400,55 @@ struct RoutePlanningView: View {
                     icon: "point.topleft.down.to.point.bottomright.curvepath"
                 )
 
-                if route.ascentMeters > 0 {
+                if plannedRoute.ascentMeters > 0 {
                     infoPill(
-                        "+\(route.ascentMeters) m",
+                        "+\(plannedRoute.ascentMeters) m",
                         icon: "arrow.up.right"
                     )
                 }
 
-                if route.maximumAltitudeMeters > 0 {
+                if plannedRoute.maximumAltitudeMeters > 0 {
                     infoPill(
-                        "\(route.maximumAltitudeMeters) m",
+                        "\(plannedRoute.maximumAltitudeMeters) m",
                         icon: "mountain.2.fill"
                     )
                 }
             }
 
-            if route.origin == .openStreetMap {
-                Text(
-                    "Percorso aperto da OpenStreetMap. La geometria è utilizzabile per mappa e meteo; il profilo altimetrico verrà aggiunto quando disponibile da una fonte affidabile."
-                )
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            if plannedRoute.origin == .openStreetMap {
+                if isLoadingTerrain {
+                    HStack(spacing: 8) {
+                        ProgressView()
+                        Text("Calcolo profilo altimetrico DEM…")
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                } else if let terrainProfile {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(
+                            "Profilo DEM · +\(Int(terrainProfile.ascentMeters.rounded())) m / -\(Int(terrainProfile.descentMeters.rounded())) m · \(Int(terrainProfile.minimumAltitudeMeters.rounded()))–\(Int(terrainProfile.maximumAltitudeMeters.rounded())) m"
+                        )
+                        .font(.caption.weight(.semibold))
+
+                        Text(
+                            "\(terrainProfile.sourceName) · \(terrainProfile.sampledPointCount) campioni"
+                        )
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    }
+                } else if let terrainError {
+                    Text(
+                        "Profilo altimetrico non disponibile: \(terrainError)"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                } else {
+                    Text(
+                        "Percorso aperto da OpenStreetMap. ARET calcola D+, D- e quote con un DEM esterno quando apri il percorso."
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
             }
         }
     }
@@ -635,11 +686,11 @@ struct RoutePlanningView: View {
     }
 
     private var physicalEffortLabel: String {
-        if route.ascentMeters >= 1_200 || route.distanceKilometers >= 16 {
+        if plannedRoute.ascentMeters >= 1_200 || plannedRoute.distanceKilometers >= 16 {
             return "elevato"
         }
 
-        if route.ascentMeters >= 600 || route.distanceKilometers >= 8 {
+        if plannedRoute.ascentMeters >= 600 || plannedRoute.distanceKilometers >= 8 {
             return "medio"
         }
 
@@ -649,7 +700,7 @@ struct RoutePlanningView: View {
     private var selectedDateKeyForTask: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
-        return "\(route.id)-\(formatter.string(from: selectedDate))"
+        return "\(plannedRoute.id)-\(plannedRoute.maximumAltitudeMeters)-\(formatter.string(from: selectedDate))"
     }
 
     private func hoursForSelectedDate(
@@ -687,17 +738,62 @@ struct RoutePlanningView: View {
     }
 
     private func targetLocation() -> CLLocation? {
-        guard !route.coordinates.isEmpty else { return nil }
+        guard !plannedRoute.coordinates.isEmpty else {
+            return nil
+        }
 
-        let midpoint = route.coordinates[route.coordinates.count / 2]
+        let midpoint =
+            plannedRoute.coordinates[
+                plannedRoute.coordinates.count / 2
+            ]
+
+        if plannedRoute.maximumAltitudeMeters > 0 {
+            return CLLocation(
+                coordinate:
+                    midpoint.clLocationCoordinate,
+                altitude:
+                    Double(
+                        plannedRoute.maximumAltitudeMeters
+                    ),
+                horizontalAccuracy: 1,
+                verticalAccuracy: 1,
+                timestamp: Date()
+            )
+        }
 
         return CLLocation(
-            coordinate: midpoint.clLocationCoordinate,
-            altitude: Double(route.maximumAltitudeMeters),
-            horizontalAccuracy: 1,
-            verticalAccuracy: 1,
-            timestamp: Date()
+            latitude: midpoint.latitude,
+            longitude: midpoint.longitude
         )
+    }
+
+    private func loadTerrainProfileIfNeeded() async {
+        guard
+            route.origin == .openStreetMap,
+            route.coordinates.count > 1
+        else {
+            return
+        }
+
+        isLoadingTerrain = true
+        terrainError = nil
+
+        do {
+            terrainProfile =
+                try await TerrainElevationService
+                    .shared
+                    .profile(
+                        coordinates: route.coordinates
+                    )
+
+            // Refresh weather at the now-known mountain altitude.
+            await loadWeather()
+        } catch {
+            terrainProfile = nil
+            terrainError = error.localizedDescription
+        }
+
+        isLoadingTerrain = false
     }
 
     private func loadWeather() async {
