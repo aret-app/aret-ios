@@ -41,12 +41,18 @@ final class WatchRouteSyncManager:
             )
 
             let payload: [[String: Double]] =
-                sampled.map {
-                    [
-                        "lat": $0.latitude,
-                        "lon": $0.longitude,
-                        "alt": $0.altitude ?? .nan
+                sampled.map { coordinate in
+                    var item: [String: Double] = [
+                        "lat": coordinate.latitude,
+                        "lon": coordinate.longitude
                     ]
+
+                    if let altitude =
+                        coordinate.altitude {
+                        item["alt"] = altitude
+                    }
+
+                    return item
                 }
 
             try session.updateApplicationContext(
