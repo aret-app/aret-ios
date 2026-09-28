@@ -52,7 +52,9 @@ final class LocationManager: NSObject, ObservableObject {
         }
     }
 
-    func startTracking() {
+    func startTracking(
+        name: String = "Attività ARET"
+    ) {
         guard !isTracking else { return }
 
         recordedLocations.removeAll(keepingCapacity: true)
@@ -66,6 +68,15 @@ final class LocationManager: NSObject, ObservableObject {
         trackingStartedAt = Date()
 
         isTracking = true
+
+        if let startedAt = trackingStartedAt {
+            TrackingLiveActivityController
+                .shared
+                .start(
+                    name: name,
+                    startedAt: startedAt
+                )
+        }
 
         manager.allowsBackgroundLocationUpdates = true
         manager.showsBackgroundLocationIndicator = true
@@ -83,6 +94,14 @@ final class LocationManager: NSObject, ObservableObject {
 
         let endedAt = Date()
         let startedAt = trackingStartedAt ?? recordedLocations.first?.timestamp ?? endedAt
+
+        TrackingLiveActivityController
+            .shared
+            .end(
+                distanceMeters: distanceMeters,
+                ascentMeters: positiveElevationMeters,
+                altitudeMeters: location?.altitude
+            )
 
         defer {
             trackingStartedAt = nil
@@ -177,6 +196,14 @@ final class LocationManager: NSObject, ObservableObject {
 
         recordedLocations.append(candidate)
         lastRecordedLocation = candidate
+
+        TrackingLiveActivityController
+            .shared
+            .update(
+                distanceMeters: distanceMeters,
+                ascentMeters: positiveElevationMeters,
+                altitudeMeters: candidate.altitude
+            )
     }
 
     private func saveRecordedTrackAsGPX(
