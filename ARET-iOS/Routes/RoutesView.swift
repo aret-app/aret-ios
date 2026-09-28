@@ -315,165 +315,171 @@ struct RoutesView: View {
         isActive: Bool,
         canDelete: Bool
     ) -> some View {
-        Button {
-            routeLibrary.select(route)
-            onSelectRoute(route)
-        } label: {
-            VStack(
-                alignment: .leading,
-                spacing: 13
-            ) {
-                HStack(
-                    alignment: .top,
-                    spacing: 12
+        VStack(
+            alignment: .leading,
+            spacing: 12
+        ) {
+            Button {
+                routeLibrary.select(route)
+                onSelectRoute(route)
+            } label: {
+                VStack(
+                    alignment: .leading,
+                    spacing: 13
                 ) {
-                    ZStack {
-                        RoundedRectangle(
-                            cornerRadius: 14,
-                            style: .continuous
+                    HStack(
+                        alignment: .top,
+                        spacing: 12
+                    ) {
+                        ZStack {
+                            RoundedRectangle(
+                                cornerRadius: 14,
+                                style: .continuous
+                            )
+                            .fill(
+                                Color.aretOrange
+                                    .opacity(0.13)
+                            )
+
+                            Image(
+                                systemName:
+                                    route.kind ==
+                                    .hiking
+                                    ? "figure.hiking"
+                                    : "mountain.2.fill"
+                            )
+                            .font(.title3)
+                            .foregroundStyle(
+                                .aretOrange
+                            )
+                        }
+                        .frame(
+                            width: 46,
+                            height: 46
                         )
-                        .fill(
-                            Color.aretOrange
-                                .opacity(0.13)
-                        )
+
+                        VStack(
+                            alignment: .leading,
+                            spacing: 3
+                        ) {
+                            HStack(spacing: 6) {
+                                Text(route.name)
+                                    .font(.headline)
+                                    .foregroundStyle(
+                                        .primary
+                                    )
+
+                                if isActive {
+                                    Text("ATTIVO")
+                                        .font(
+                                            .caption2
+                                            .weight(.bold)
+                                        )
+                                        .foregroundStyle(
+                                            .aretOrange
+                                        )
+                                }
+                            }
+
+                            Text(route.subtitle)
+                                .font(.caption)
+                                .foregroundStyle(
+                                    .secondary
+                                )
+                                .lineLimit(1)
+                        }
+
+                        Spacer()
 
                         Image(
                             systemName:
-                                route.kind ==
-                                .hiking
-                                ? "figure.hiking"
-                                : "mountain.2.fill"
+                                "chevron.right"
                         )
-                        .font(.title3)
                         .foregroundStyle(
-                            .aretOrange
+                            .secondary
                         )
                     }
-                    .frame(
-                        width: 46,
-                        height: 46
-                    )
 
-                    VStack(
-                        alignment: .leading,
-                        spacing: 3
-                    ) {
-                        HStack(spacing: 6) {
-                            Text(route.name)
-                                .font(
-                                    .headline
-                                )
-                                .foregroundStyle(
-                                    .primary
-                                )
+                    HStack(spacing: 8) {
+                        miniMetric(
+                            icon:
+                                "point.topleft.down.to.point.bottomright.curvepath",
+                            text: String(
+                                format:
+                                    "%.1f km",
+                                route
+                                    .distanceKilometers
+                            )
+                        )
 
-                            if isActive {
-                                Text("ATTIVO")
-                                    .font(
-                                        .caption2
-                                        .weight(.bold)
-                                    )
-                                    .foregroundStyle(
-                                        .aretOrange
-                                    )
-                            }
+                        if route.ascentMeters > 0 {
+                            miniMetric(
+                                icon:
+                                    "arrow.up.right",
+                                text:
+                                    "+\(route.ascentMeters) m"
+                            )
                         }
 
-                        Text(route.subtitle)
-                            .font(.caption)
-                            .foregroundStyle(
-                                .secondary
+                        if route.maximumAltitudeMeters > 0 {
+                            miniMetric(
+                                icon:
+                                    "mountain.2.fill",
+                                text:
+                                    "\(route.maximumAltitudeMeters) m"
                             )
-                            .lineLimit(1)
+                        }
                     }
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
 
+            if canDelete {
+                Divider()
+                    .overlay(
+                        Color.white.opacity(0.08)
+                    )
+
+                HStack {
                     Spacer()
 
-                    Image(
-                        systemName:
-                            "chevron.right"
-                    )
-                    .foregroundStyle(
-                        .secondary
-                    )
-                }
-
-                HStack(spacing: 8) {
-                    miniMetric(
-                        icon:
-                            "point.topleft.down.to.point.bottomright.curvepath",
-                        text: String(
-                            format:
-                                "%.1f km",
-                            route
-                                .distanceKilometers
-                        )
-                    )
-
-                    if route
-                        .ascentMeters > 0 {
-                        miniMetric(
-                            icon:
-                                "arrow.up.right",
-                            text:
-                                "+\(route.ascentMeters) m"
-                        )
-                    }
-
-                    if route
-                        .maximumAltitudeMeters >
-                        0 {
-                        miniMetric(
-                            icon:
-                                "mountain.2.fill",
-                            text:
-                                "\(route.maximumAltitudeMeters) m"
-                        )
-                    }
-                }
-
-                if canDelete {
-                    HStack {
-                        Spacer()
-
-                        Button(
-                            role: .destructive
-                        ) {
-                            routeLibrary
-                                .deletePersonalRoute(
-                                    route
-                                )
-                        } label: {
-                            Label(
-                                "Elimina",
-                                systemImage:
-                                    "trash"
+                    Button(
+                        role: .destructive
+                    ) {
+                        routeLibrary
+                            .deletePersonalRoute(
+                                route
                             )
-                            .font(.caption)
-                        }
-                        .buttonStyle(.plain)
+                    } label: {
+                        Label(
+                            "Elimina",
+                            systemImage:
+                                "trash"
+                        )
+                        .font(.caption)
                     }
-                }
-            }
-            .aretGlassCard(
-                cornerRadius: 22,
-                padding: 15
-            )
-            .overlay {
-                if isActive {
-                    RoundedRectangle(
-                        cornerRadius: 22,
-                        style: .continuous
-                    )
-                    .stroke(
-                        Color.aretOrange
-                            .opacity(0.65),
-                        lineWidth: 1.2
-                    )
+                    .buttonStyle(.plain)
                 }
             }
         }
-        .buttonStyle(.plain)
+        .aretGlassCard(
+            cornerRadius: 22,
+            padding: 15
+        )
+        .overlay {
+            if isActive {
+                RoundedRectangle(
+                    cornerRadius: 22,
+                    style: .continuous
+                )
+                .stroke(
+                    Color.aretOrange
+                        .opacity(0.65),
+                    lineWidth: 1.2
+                )
+            }
+        }
     }
 
     private func miniMetric(
