@@ -135,7 +135,7 @@ actor FieldWeatherService {
             ),
             URLQueryItem(
                 name: "hourly",
-                value: "temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,visibility,freezing_level_height"
+                value: "temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_gusts_10m"
             ),
             URLQueryItem(
                 name: "daily",
@@ -206,8 +206,8 @@ actor FieldWeatherService {
                     windSpeedKPH: decoded.hourly.windSpeed10m[index],
                     windGustKPH: decoded.hourly.windGusts10m[index],
                     weatherCode: decoded.hourly.weatherCode[index],
-                    visibilityMeters: decoded.hourly.visibility[safe: index] ?? nil,
-                    freezingLevelMeters: decoded.hourly.freezingLevelHeight[safe: index] ?? nil
+                    visibilityMeters: nil,
+                    freezingLevelMeters: nil
                 )
             )
         }
@@ -328,9 +328,6 @@ private extension FieldWeatherService {
         let weatherCode: [Int]
         let windSpeed10m: [Double]
         let windGusts10m: [Double]
-        let visibility: [Double?]
-        let freezingLevelHeight: [Double?]
-
         enum CodingKeys: String, CodingKey {
             case time
             case temperature2m = "temperature_2m"
@@ -339,8 +336,6 @@ private extension FieldWeatherService {
             case weatherCode = "weather_code"
             case windSpeed10m = "wind_speed_10m"
             case windGusts10m = "wind_gusts_10m"
-            case visibility
-            case freezingLevelHeight = "freezing_level_height"
         }
     }
 
