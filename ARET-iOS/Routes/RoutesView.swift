@@ -17,6 +17,23 @@ struct RoutesView: View {
     var body: some View {
         NavigationStack {
             List {
+                Section("Pianifica") {
+                    NavigationLink {
+                        RoutePlannerSearchView()
+                    } label: {
+                        Label(
+                            "Pianifica salita / escursione",
+                            systemImage: "calendar.badge.clock"
+                        )
+                    }
+
+                    Text(
+                        "Cerca un percorso, scegli il giorno e consulta meteo, finestra favorevole e dati utili."
+                    )
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                }
+
                 Section {
                     Button {
                         showGPXImporter = true
