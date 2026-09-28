@@ -7,6 +7,8 @@ final class TrackingLiveActivityController {
 
     private var activity: Activity<ARETTrackingAttributes>?
     private var lastUpdateAt: Date?
+    private var lastState:
+        ARETTrackingAttributes.ContentState?
 
     private init() {}
 
@@ -63,6 +65,7 @@ final class TrackingLiveActivityController {
                     ),
                     pushType: nil
                 )
+                lastState = initialState
                 lastUpdateAt = nil
             } catch {
                 print(
@@ -97,6 +100,8 @@ final class TrackingLiveActivityController {
                 isTracking: true
             )
 
+        lastState = state
+
         Task {
             await activity.update(
                 ActivityContent(
@@ -111,21 +116,30 @@ final class TrackingLiveActivityController {
     func disableAndEndCurrent() {
         guard let activity else { return }
 
-        let state = activity.content.state
+        let current =
+            lastState ??
+            ARETTrackingAttributes.ContentState(
+                distanceMeters: 0,
+                ascentMeters: 0,
+                altitudeMeters: nil,
+                isTracking: false
+            )
+
+        let final =
+            ARETTrackingAttributes.ContentState(
+                distanceMeters:
+                    current.distanceMeters,
+                ascentMeters:
+                    current.ascentMeters,
+                altitudeMeters:
+                    current.altitudeMeters,
+                isTracking: false
+            )
 
         Task {
             await activity.end(
                 ActivityContent(
-                    state:
-                        ARETTrackingAttributes.ContentState(
-                            distanceMeters:
-                                state.distanceMeters,
-                            ascentMeters:
-                                state.ascentMeters,
-                            altitudeMeters:
-                                state.altitudeMeters,
-                            isTracking: false
-                        ),
+                    state: final,
                     staleDate: nil
                 ),
                 dismissalPolicy: .immediate
@@ -134,6 +148,7 @@ final class TrackingLiveActivityController {
 
         self.activity = nil
         lastUpdateAt = nil
+        lastState = nil
     }
 
     func end(
@@ -151,6 +166,8 @@ final class TrackingLiveActivityController {
                 isTracking: false
             )
 
+        lastState = state
+
         Task {
             await activity.end(
                 ActivityContent(
@@ -165,5 +182,6 @@ final class TrackingLiveActivityController {
 
         self.activity = nil
         lastUpdateAt = nil
+        lastState = nil
     }
 }
