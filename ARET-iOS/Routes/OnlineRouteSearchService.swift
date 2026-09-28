@@ -6,6 +6,14 @@ import CoreLocation
 final class OnlineRouteSearchService {
     static let shared = OnlineRouteSearchService()
 
+    private let session: URLSession = {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        configuration.urlCache = nil
+        configuration.httpCookieStorage = nil
+        return URLSession(configuration: configuration)
+    }()
+
     private init() {}
 
     func search(
@@ -62,7 +70,7 @@ final class OnlineRouteSearchService {
                 .data(using: .utf8)
 
         let (data, response) =
-            try await URLSession.shared
+            try await session
                 .data(for: request)
 
         guard
