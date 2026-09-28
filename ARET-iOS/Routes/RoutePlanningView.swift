@@ -161,7 +161,7 @@ struct RoutePlannerSearchView: View {
             spacing: 5
         ) {
             HStack {
-                Text(plannedRoute.name)
+                Text(route.name)
                     .font(.headline)
 
                 if route.origin ==
@@ -183,7 +183,7 @@ struct RoutePlannerSearchView: View {
                 }
             }
 
-            Text(plannedRoute.subtitle)
+            Text(route.subtitle)
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -193,7 +193,7 @@ struct RoutePlannerSearchView: View {
                     String(
                         format:
                             "%.1f km · profilo altimetrico da verificare",
-                        plannedRoute.distanceKilometers
+                        route.distanceKilometers
                     )
                 )
                 .font(.caption)
@@ -385,17 +385,17 @@ struct RoutePlanningView: View {
 
     private var routeHeader: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(route.name)
+            Text(plannedRoute.name)
                 .font(.largeTitle.bold())
 
-            Text(route.subtitle)
+            Text(plannedRoute.subtitle)
                 .foregroundStyle(.secondary)
 
             HStack(spacing: 10) {
                 infoPill(
                     String(
                         format: "%.1f km",
-                        route.distanceKilometers
+                        plannedRoute.distanceKilometers
                     ),
                     icon: "point.topleft.down.to.point.bottomright.curvepath"
                 )
