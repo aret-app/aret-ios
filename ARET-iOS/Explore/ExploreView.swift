@@ -2,7 +2,10 @@ import SwiftUI
 import MapKit
 import CoreLocation
 
-private enum MapDisplayStyle: String, CaseIterable, Identifiable {
+private enum MapDisplayStyle:
+    String,
+    CaseIterable,
+    Identifiable {
     case topographic = "Topo"
     case hybrid = "Ibrida"
     case satellite = "Satellite"
@@ -22,35 +25,49 @@ private enum MapDisplayStyle: String, CaseIterable, Identifiable {
 }
 
 struct ExploreView: View {
-    @EnvironmentObject private var locationManager: LocationManager
-    @EnvironmentObject private var activityStore: ActivityStore
-    @EnvironmentObject private var routeLibrary: RouteLibraryStore
+    @EnvironmentObject private var locationManager:
+        LocationManager
+
+    @EnvironmentObject private var activityStore:
+        ActivityStore
+
+    @EnvironmentObject private var routeLibrary:
+        RouteLibraryStore
 
     @AppStorage("aret.mapDisplayStyle")
-    private var mapDisplayStyleRaw = MapDisplayStyle.topographic.rawValue
+    private var mapDisplayStyleRaw =
+        MapDisplayStyle.hybrid.rawValue
 
-    @State private var camera: MapCameraPosition = .camera(
-        MapCamera(
-            centerCoordinate: CLLocationCoordinate2D(
-                latitude: 44.05,
-                longitude: 10.20
-            ),
-            distance: 14_000,
-            heading: 0,
-            pitch: 55
+    @State private var camera:
+        MapCameraPosition = .camera(
+            MapCamera(
+                centerCoordinate:
+                    CLLocationCoordinate2D(
+                        latitude: 44.05,
+                        longitude: 10.20
+                    ),
+                distance: 14_000,
+                heading: 0,
+                pitch: 58
+            )
         )
-    )
 
     @State private var showEmergency = false
-    @State private var weather: WeatherSnapshot?
-    @State private var weatherError: String?
-    @State private var completedActivity: RecordedActivity?
+    @State private var weather:
+        WeatherSnapshot?
 
-    private var mapDisplayStyle: MapDisplayStyle {
-        MapDisplayStyle(rawValue: mapDisplayStyleRaw) ?? .topographic
+    @State private var completedActivity:
+        RecordedActivity?
+
+    private var mapDisplayStyle:
+        MapDisplayStyle {
+        MapDisplayStyle(
+            rawValue: mapDisplayStyleRaw
+        ) ?? .hybrid
     }
 
-    private var selectedMapStyle: MapStyle {
+    private var selectedMapStyle:
+        MapStyle {
         switch mapDisplayStyle {
         case .topographic:
             return .standard(
@@ -68,84 +85,129 @@ struct ExploreView: View {
             )
 
         case .satellite:
-            return .imagery(elevation: .realistic)
+            return .imagery(
+                elevation: .realistic
+            )
         }
     }
 
-    private var activeRouteCoordinates: [CLLocationCoordinate2D] {
-        routeLibrary.activeRoute?.coordinates.map(
-            \.clLocationCoordinate
-        ) ?? []
+    private var activeRouteCoordinates:
+        [CLLocationCoordinate2D] {
+        routeLibrary.activeRoute?
+            .coordinates
+            .map(
+                .clLocationCoordinate
+            ) ?? []
     }
 
-    private var offRouteDistance: CLLocationDistance? {
+    private var offRouteDistance:
+        CLLocationDistance? {
         guard
             locationManager.isTracking,
-            let location = locationManager.location,
-            let route = routeLibrary.activeRoute,
+            let location =
+                locationManager.location,
+            let route =
+                routeLibrary.activeRoute,
             route.coordinates.count >= 2
         else {
             return nil
         }
 
-        return RouteDistanceCalculator.distance(
-            from: location.coordinate,
-            to: route.coordinates
-        )
+        return RouteDistanceCalculator
+            .distance(
+                from: location.coordinate,
+                to: route.coordinates
+            )
     }
 
     var body: some View {
-        ZStack(alignment: .bottom) {
+        ZStack {
             map
 
-            VStack(spacing: 12) {
-                header
-                activeRouteSummary
-                offRouteWarning
+            LinearGradient(
+                colors: [
+                    .black.opacity(0.58),
+                    .clear,
+                    .clear,
+                    .black.opacity(0.68)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .allowsHitTesting(false)
+            .ignoresSafeArea()
 
-                if locationManager.isTracking {
-                    TimelineView(
-                        .periodic(from: .now, by: 1)
-                    ) { context in
-                        liveTrackingDashboard(now: context.date)
-                    }
+            VStack(spacing: 0) {
+                topBar
+                    .padding(.horizontal, 16)
+                    .padding(.top, 6)
+
+                Spacer()
+
+                if let distance =
+                    offRouteDistance,
+                   distance > 75 {
+                    offRouteBanner(
+                        distance: distance
+                    )
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 10)
                 }
 
-                controls
+                if locationManager.isTracking {
+                    trackingPanel
+                } else {
+                    idleRoutePanel
+                }
             }
-            .padding(16)
-            .background(
-                .ultraThinMaterial,
-                in: RoundedRectangle(
-                    cornerRadius: 24,
-                    style: .continuous
-                )
-            )
-            .padding(.horizontal)
             .padding(.bottom, 8)
         }
-        .sheet(isPresented: $showEmergency) {
+        .sheet(
+            isPresented: $showEmergency
+        ) {
             NavigationStack {
-                EmergencyView(location: locationManager.location)
+                EmergencyView(
+                    location:
+                        locationManager
+                            .location
+                )
             }
-            .presentationDetents([.medium, .large])
+            .presentationDetents(
+                [.medium, .large]
+            )
         }
-        .sheet(item: $completedActivity) { activity in
-            ActivitySummaryView(activity: activity)
-                .environmentObject(activityStore)
-                .environmentObject(routeLibrary)
-                .interactiveDismissDisabled()
+        .sheet(
+            item: $completedActivity
+        ) { activity in
+            ActivitySummaryView(
+                activity: activity
+            )
+            .environmentObject(
+                activityStore
+            )
+            .environmentObject(
+                routeLibrary
+            )
+            .interactiveDismissDisabled()
         }
         .task {
-            locationManager.requestPermission()
+            locationManager
+                .requestPermission()
         }
-        .task(id: weatherRefreshKey) {
+        .task(
+            id: weatherRefreshKey
+        ) {
             await refreshWeather()
         }
-        .onChange(of: routeLibrary.activeRoute?.id) {
-            _, newRouteID in
+        .onChange(
+            of: routeLibrary
+                .activeRoute?
+                .id
+        ) { _, newRouteID in
+            guard newRouteID != nil else {
+                return
+            }
 
-            guard newRouteID != nil else { return }
             fitCameraToActiveRoute()
         }
     }
@@ -154,25 +216,50 @@ struct ExploreView: View {
         Map(position: $camera) {
             UserAnnotation()
 
-            if activeRouteCoordinates.count > 1 {
+            if activeRouteCoordinates
+                .count > 1 {
                 MapPolyline(
-                    coordinates: activeRouteCoordinates
+                    coordinates:
+                        activeRouteCoordinates
                 )
                 .stroke(
-                    .white.opacity(0.95),
-                    lineWidth: 5
+                    .black.opacity(0.68),
+                    lineWidth: 9
+                )
+
+                MapPolyline(
+                    coordinates:
+                        activeRouteCoordinates
+                )
+                .stroke(
+                    .aretOrange,
+                    style: StrokeStyle(
+                        lineWidth: 5.5,
+                        lineCap: .round,
+                        lineJoin: .round
+                    )
                 )
             }
 
-            if locationManager.isTracking,
-               locationManager.recordedLocations.count > 1 {
+            if
+                locationManager.isTracking,
+                locationManager
+                    .recordedLocations
+                    .count > 1 {
                 MapPolyline(
                     coordinates:
-                        locationManager.recordedLocations.map(
-                            \.coordinate
-                        )
+                        locationManager
+                            .recordedLocations
+                            .map(.coordinate)
                 )
-                .stroke(.orange, lineWidth: 4)
+                .stroke(
+                    .white.opacity(0.92),
+                    style: StrokeStyle(
+                        lineWidth: 3.5,
+                        lineCap: .round,
+                        lineJoin: .round
+                    )
+                )
             }
         }
         .mapStyle(selectedMapStyle)
@@ -180,82 +267,28 @@ struct ExploreView: View {
             MapCompass()
             MapScaleView()
         }
-        .overlay(alignment: .topTrailing) {
-            VStack(spacing: 10) {
-                Button {
-                    centerOnUser()
-                } label: {
-                    controlCircle(
-                        icon: "location.fill"
-                    )
-                }
-                .accessibilityLabel(
-                    "Vai alla mia posizione"
-                )
-
-                Menu {
-                    ForEach(MapDisplayStyle.allCases) { style in
-                        Button {
-                            mapDisplayStyleRaw = style.rawValue
-                        } label: {
-                            if style == mapDisplayStyle {
-                                Label(
-                                    style.rawValue,
-                                    systemImage: "checkmark"
-                                )
-                            } else {
-                                Label(
-                                    style.rawValue,
-                                    systemImage: style.icon
-                                )
-                            }
-                        }
-                    }
-                } label: {
-                    controlCircle(
-                        icon: mapDisplayStyle.icon
-                    )
-                }
-                .accessibilityLabel(
-                    "Scegli visualizzazione mappa"
-                )
-            }
-            .tint(.primary)
-            .padding(.top, 60)
-            .padding(.trailing, 16)
+        .overlay(
+            alignment: .trailing
+        ) {
+            mapControls
+                .padding(.trailing, 15)
+                .offset(y: -30)
         }
         .ignoresSafeArea()
     }
 
-    private func controlCircle(
-        icon: String
-    ) -> some View {
-        Image(systemName: icon)
-            .font(.title3.weight(.semibold))
-            .frame(width: 46, height: 46)
-            .background(
-                .ultraThinMaterial,
-                in: Circle()
-            )
-            .shadow(radius: 5, y: 2)
-    }
-
-    private var header: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("ARET")
-                    .font(.headline.weight(.bold))
-
-                Text("Every line. One map.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+    private var topBar: some View {
+        HStack(spacing: 10) {
+            ARETWordmark()
 
             Spacer()
 
             if let weather {
                 HStack(spacing: 6) {
-                    Image(systemName: weather.symbolName)
+                    Image(
+                        systemName:
+                            weather.symbolName
+                    )
 
                     Text(
                         "\(Int(weather.temperatureCelsius.rounded()))°"
@@ -263,204 +296,614 @@ struct ExploreView: View {
                     .monospacedDigit()
 
                     Text(
-                        "\(Int(weather.windSpeedKPH.rounded())) km/h"
+                        "\(Int(weather.windSpeedKPH.rounded()))"
                     )
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(
+                        .secondary
+                    )
+
+                    Image(
+                        systemName: "wind"
+                    )
+                    .foregroundStyle(
+                        .secondary
+                    )
                 }
-                .font(.caption.weight(.semibold))
+                .font(
+                    .caption
+                    .weight(.semibold)
+                )
+                .padding(.horizontal, 11)
+                .padding(.vertical, 9)
+                .background(
+                    .ultraThinMaterial,
+                    in: Capsule()
+                )
+                .overlay {
+                    Capsule()
+                        .stroke(
+                            Color.white
+                                .opacity(0.10),
+                            lineWidth: 0.8
+                        )
+                }
             }
 
             Button {
                 showEmergency = true
             } label: {
-                Image(systemName: "sos.circle.fill")
-                    .font(.title2)
-            }
-            .tint(.red)
-        }
-    }
-
-    @ViewBuilder
-    private var activeRouteSummary: some View {
-        if let route = routeLibrary.activeRoute {
-            HStack(spacing: 10) {
-                Image(
-                    systemName: route.kind == .hiking
-                    ? "figure.hiking"
-                    : "mountain.2.fill"
-                )
-                .foregroundStyle(.orange)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(route.name)
-                        .font(.subheadline.weight(.semibold))
-
-                    Text(
-                        "\(route.distanceKilometers, specifier: "%.1f") km · +\(route.ascentMeters) m · max \(route.maximumAltitudeMeters) m"
-                    )
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                if !locationManager.isTracking {
-                    Button {
-                        routeLibrary.clearSelection()
-                    } label: {
-                        Image(
-                            systemName: "xmark.circle.fill"
-                        )
-                        .foregroundStyle(.secondary)
-                    }
-                    .accessibilityLabel(
-                        "Rimuovi percorso dalla mappa"
-                    )
-                }
-            }
-        } else if !locationManager.isTracking {
-            HStack(spacing: 10) {
                 Image(
                     systemName:
-                        "point.topleft.down.to.point.bottomright.curvepath"
+                        "sos.circle.fill"
                 )
-                .foregroundStyle(.secondary)
-
-                Text("Nessun percorso selezionato")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-
-                Spacer()
+                .font(.title2)
+                .frame(
+                    width: 42,
+                    height: 42
+                )
+                .background(
+                    .ultraThinMaterial,
+                    in: Circle()
+                )
             }
+            .tint(.red)
+            .accessibilityLabel(
+                "Emergenza"
+            )
         }
+    }
+
+    private var mapControls: some View {
+        VStack(spacing: 10) {
+            Button {
+                centerOnUser()
+            } label: {
+                floatingControl(
+                    icon:
+                        "location.north.fill"
+                )
+            }
+            .accessibilityLabel(
+                "Centra sulla mia posizione"
+            )
+
+            Menu {
+                ForEach(
+                    MapDisplayStyle
+                        .allCases
+                ) { style in
+                    Button {
+                        mapDisplayStyleRaw =
+                            style.rawValue
+                    } label: {
+                        Label(
+                            style.rawValue,
+                            systemImage:
+                                style ==
+                                mapDisplayStyle
+                                ? "checkmark"
+                                : style.icon
+                        )
+                    }
+                }
+            } label: {
+                floatingControl(
+                    icon:
+                        mapDisplayStyle.icon
+                )
+            }
+            .accessibilityLabel(
+                "Stile mappa"
+            )
+
+            Button {
+                if
+                    routeLibrary
+                        .activeRoute != nil {
+                    fitCameraToActiveRoute()
+                } else {
+                    centerOnUser()
+                }
+            } label: {
+                floatingControl(
+                    icon:
+                        "view.3d"
+                )
+            }
+            .accessibilityLabel(
+                "Vista percorso"
+            )
+        }
+        .tint(.white)
+    }
+
+    private func floatingControl(
+        icon: String
+    ) -> some View {
+        Image(systemName: icon)
+            .font(
+                .system(
+                    size: 16,
+                    weight: .semibold
+                )
+            )
+            .frame(
+                width: 44,
+                height: 44
+            )
+            .background(
+                Color.black.opacity(0.64),
+                in: Circle()
+            )
+            .overlay {
+                Circle()
+                    .stroke(
+                        Color.white
+                            .opacity(0.13),
+                        lineWidth: 0.8
+                    )
+            }
+            .shadow(
+                color:
+                    .black.opacity(0.28),
+                radius: 8,
+                y: 4
+            )
     }
 
     @ViewBuilder
-    private var offRouteWarning: some View {
-        if let distance = offRouteDistance,
-           distance > 75 {
-            Label(
-                "Ti stai allontanando dalla traccia di riferimento · \(formattedRouteDistance(distance))",
-                systemImage:
-                    "exclamationmark.triangle.fill"
+    private var idleRoutePanel:
+        some View {
+        if let route =
+            routeLibrary.activeRoute {
+            VStack(
+                alignment: .leading,
+                spacing: 14
+            ) {
+                HStack(
+                    alignment: .top,
+                    spacing: 12
+                ) {
+                    ZStack {
+                        RoundedRectangle(
+                            cornerRadius: 14,
+                            style: .continuous
+                        )
+                        .fill(
+                            Color.aretOrange
+                                .opacity(0.14)
+                        )
+
+                        Image(
+                            systemName:
+                                route.kind ==
+                                .hiking
+                                ? "figure.hiking"
+                                : "mountain.2.fill"
+                        )
+                        .font(.title2)
+                        .foregroundStyle(
+                            .aretOrange
+                        )
+                    }
+                    .frame(
+                        width: 50,
+                        height: 50
+                    )
+
+                    VStack(
+                        alignment: .leading,
+                        spacing: 3
+                    ) {
+                        Text(route.name)
+                            .font(
+                                .title3
+                                .weight(.bold)
+                            )
+                            .lineLimit(1)
+
+                        Text(route.subtitle)
+                            .font(.caption)
+                            .foregroundStyle(
+                                .secondary
+                            )
+                            .lineLimit(1)
+                    }
+
+                    Spacer()
+
+                    Button {
+                        routeLibrary
+                            .clearSelection()
+                    } label: {
+                        Image(
+                            systemName:
+                                "xmark.circle.fill"
+                        )
+                        .foregroundStyle(
+                            .secondary
+                        )
+                    }
+                }
+
+                HStack(spacing: 0) {
+                    routeMetric(
+                        value: String(
+                            format: "%.1f",
+                            route
+                                .distanceKilometers
+                        ),
+                        unit: "km",
+                        title: "Distanza"
+                    )
+
+                    divider
+
+                    routeMetric(
+                        value:
+                            "+\(route.ascentMeters)",
+                        unit: "m",
+                        title: "D+"
+                    )
+
+                    divider
+
+                    routeMetric(
+                        value:
+                            "\(route.maximumAltitudeMeters)",
+                        unit: "m",
+                        title: "Quota max"
+                    )
+                }
+
+                if let weather {
+                    HStack(spacing: 10) {
+                        Image(
+                            systemName:
+                                weather.symbolName
+                        )
+                        .font(.title3)
+                        .foregroundStyle(
+                            .aretOrange
+                        )
+
+                        VStack(
+                            alignment: .leading,
+                            spacing: 2
+                        ) {
+                            Text(
+                                weather
+                                    .conditionName
+                            )
+                            .font(
+                                .subheadline
+                                .weight(.semibold)
+                            )
+
+                            Text(
+                                "\(Int(weather.temperatureCelsius.rounded()))° · vento \(Int(weather.windSpeedKPH.rounded())) km/h · raffiche \(Int(weather.windGustKPH.rounded())) km/h"
+                            )
+                            .font(.caption2)
+                            .foregroundStyle(
+                                .secondary
+                            )
+                        }
+
+                        Spacer()
+                    }
+                }
+
+                Button {
+                    startTracking()
+                } label: {
+                    HStack {
+                        Image(
+                            systemName:
+                                "play.fill"
+                        )
+
+                        Text("Avvia attività")
+                            .font(
+                                .headline
+                            )
+
+                        Spacer()
+
+                        Image(
+                            systemName:
+                                "arrow.right"
+                        )
+                    }
+                    .padding(.horizontal, 4)
+                    .frame(
+                        maxWidth: .infinity
+                    )
+                }
+                .buttonStyle(
+                    .borderedProminent
+                )
+                .tint(.aretOrange)
+                .controlSize(.large)
+            }
+            .aretGlassCard(
+                cornerRadius: 28,
+                padding: 16
             )
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.orange)
-            .frame(
-                maxWidth: .infinity,
-                alignment: .leading
+            .padding(.horizontal, 14)
+        } else {
+            HStack(spacing: 14) {
+                ARETMark(size: 46)
+
+                VStack(
+                    alignment: .leading,
+                    spacing: 3
+                ) {
+                    Text(
+                        "Esplora. Pianifica. Parti."
+                    )
+                    .font(
+                        .headline
+                        .weight(.bold)
+                    )
+
+                    Text(
+                        "Seleziona un itinerario oppure registra un’attività libera."
+                    )
+                    .font(.caption)
+                    .foregroundStyle(
+                        .secondary
+                    )
+                }
+
+                Spacer()
+
+                Button {
+                    startTracking()
+                } label: {
+                    Image(
+                        systemName:
+                            "play.fill"
+                    )
+                    .font(.headline)
+                    .frame(
+                        width: 48,
+                        height: 48
+                    )
+                }
+                .buttonStyle(
+                    .borderedProminent
+                )
+                .tint(.aretOrange)
+                .clipShape(Circle())
+            }
+            .aretGlassCard(
+                cornerRadius: 26,
+                padding: 14
             )
+            .padding(.horizontal, 14)
         }
     }
 
-    private func liveTrackingDashboard(
-        now: Date
-    ) -> some View {
-        let elapsed = max(
-            0,
-            now.timeIntervalSince(
-                locationManager.trackingStartedAt ?? now
+    private var trackingPanel:
+        some View {
+        TimelineView(
+            .periodic(
+                from: .now,
+                by: 1
             )
-        )
-
-        let averageSpeedKPH = elapsed > 0
-            ? (
-                locationManager.distanceMeters /
-                elapsed
-            ) * 3.6
-            : 0
-
-        let altitude = locationManager.location?.altitude
-        let accuracy =
-            locationManager.location?.horizontalAccuracy
-
-        return LazyVGrid(
-            columns: Array(
-                repeating: GridItem(
-                    .flexible(),
-                    spacing: 8
-                ),
-                count: 3
-            ),
-            spacing: 10
-        ) {
-            liveMetric(
-                value: formatDuration(elapsed),
-                unit: "",
-                label: "Durata"
+        ) { context in
+            let elapsed = max(
+                0,
+                context.date
+                    .timeIntervalSince(
+                        locationManager
+                            .trackingStartedAt ??
+                        context.date
+                    )
             )
 
-            liveMetric(
-                value: String(
-                    format: "%.2f",
-                    locationManager.distanceMeters / 1000
-                ),
-                unit: "km",
-                label: "Distanza"
-            )
+            VStack(
+                alignment: .leading,
+                spacing: 14
+            ) {
+                HStack {
+                    HStack(spacing: 7) {
+                        Circle()
+                            .fill(
+                                .aretOrange
+                            )
+                            .frame(
+                                width: 8,
+                                height: 8
+                            )
 
-            liveMetric(
-                value: "\(locationManager.recordedLocations.count)",
-                unit: "",
-                label: "Punti GPS"
-            )
+                        Text(
+                            "REGISTRAZIONE ATTIVA"
+                        )
+                        .font(
+                            .caption2
+                            .weight(.bold)
+                        )
+                        .tracking(1.2)
+                    }
+                    .foregroundStyle(
+                        .aretOrange
+                    )
 
-            liveMetric(
-                value: String(
-                    format: "%.0f",
-                    locationManager.positiveElevationMeters
-                ),
-                unit: "m",
-                label: "D+"
-            )
+                    Spacer()
 
-            liveMetric(
-                value: String(
-                    format: "%.0f",
-                    locationManager.negativeElevationMeters
-                ),
-                unit: "m",
-                label: "D−"
-            )
+                    Text(
+                        formatDuration(
+                            elapsed
+                        )
+                    )
+                    .font(
+                        .title3
+                        .weight(.semibold)
+                        .monospacedDigit()
+                    )
+                }
 
-            liveMetric(
-                value: altitude.map {
-                    String(format: "%.0f", $0)
-                } ?? "—",
-                unit: "m",
-                label: "Quota"
-            )
+                HStack(spacing: 8) {
+                    liveMetric(
+                        value: String(
+                            format: "%.2f",
+                            locationManager
+                                .distanceMeters /
+                            1000
+                        ),
+                        unit: "km",
+                        label: "Distanza"
+                    )
 
-            liveMetric(
-                value: String(
-                    format: "%.1f",
-                    locationManager.currentSpeedMPS * 3.6
-                ),
-                unit: "km/h",
-                label: "Velocità"
-            )
+                    liveMetric(
+                        value: String(
+                            format: "%.0f",
+                            locationManager
+                                .positiveElevationMeters
+                        ),
+                        unit: "m",
+                        label: "D+"
+                    )
 
-            liveMetric(
-                value: String(
-                    format: "%.1f",
-                    averageSpeedKPH
-                ),
-                unit: "km/h",
-                label: "Media"
-            )
+                    liveMetric(
+                        value:
+                            locationManager
+                                .location
+                                .map {
+                                    String(
+                                        format:
+                                            "%.0f",
+                                        $0.altitude
+                                    )
+                                } ?? "—",
+                        unit: "m",
+                        label: "Quota"
+                    )
 
-            liveMetric(
-                value: accuracy.flatMap {
-                    $0 >= 0 ? String(
-                        format: "%.0f",
-                        $0
-                    ) : nil
-                } ?? "—",
-                unit: "m",
-                label: "Precisione GPS"
+                    liveMetric(
+                        value: String(
+                            format: "%.1f",
+                            locationManager
+                                .currentSpeedMPS *
+                            3.6
+                        ),
+                        unit: "km/h",
+                        label: "Vel."
+                    )
+                }
+
+                if let route =
+                    routeLibrary.activeRoute {
+                    HStack(spacing: 8) {
+                        Image(
+                            systemName:
+                                "location.north.fill"
+                        )
+                        .foregroundStyle(
+                            .aretOrange
+                        )
+
+                        Text(route.name)
+                            .font(
+                                .caption
+                                .weight(.semibold)
+                            )
+                            .lineLimit(1)
+
+                        Spacer()
+
+                        if let distance =
+                            offRouteDistance {
+                            Text(
+                                distance <= 75
+                                ? "Sulla traccia"
+                                : formattedRouteDistance(
+                                    distance
+                                )
+                            )
+                            .font(.caption2)
+                            .foregroundStyle(
+                                distance <= 75
+                                ? .green
+                                : .orange
+                            )
+                        }
+                    }
+                }
+
+                Button(
+                    role: .destructive
+                ) {
+                    stopTracking()
+                } label: {
+                    Label(
+                        "Termina attività",
+                        systemImage:
+                            "stop.fill"
+                    )
+                    .frame(
+                        maxWidth: .infinity
+                    )
+                }
+                .buttonStyle(
+                    .borderedProminent
+                )
+                .tint(
+                    Color.red.opacity(0.88)
+                )
+            }
+            .aretGlassCard(
+                cornerRadius: 28,
+                padding: 16
             )
+            .padding(.horizontal, 14)
         }
+    }
+
+    private func routeMetric(
+        value: String,
+        unit: String,
+        title: String
+    ) -> some View {
+        VStack(spacing: 2) {
+            HStack(
+                alignment: .firstTextBaseline,
+                spacing: 2
+            ) {
+                Text(value)
+                    .font(
+                        .headline
+                        .monospacedDigit()
+                    )
+
+                Text(unit)
+                    .font(.caption2)
+                    .foregroundStyle(
+                        .secondary
+                    )
+            }
+
+            Text(title)
+                .font(.caption2)
+                .foregroundStyle(
+                    .secondary
+                )
+        }
+        .frame(
+            maxWidth: .infinity
+        )
+    }
+
+    private var divider: some View {
+        Rectangle()
+            .fill(
+                Color.white.opacity(0.10)
+            )
+            .frame(
+                width: 1,
+                height: 32
+            )
     }
 
     private func liveMetric(
@@ -468,105 +911,130 @@ struct ExploreView: View {
         unit: String,
         label: String
     ) -> some View {
-        VStack(spacing: 3) {
+        VStack(spacing: 2) {
             HStack(
-                alignment: .firstTextBaseline,
+                alignment:
+                    .firstTextBaseline,
                 spacing: 2
             ) {
                 Text(value)
                     .font(
-                        .subheadline.weight(.semibold)
+                        .subheadline
+                        .weight(.semibold)
+                        .monospacedDigit()
                     )
-                    .monospacedDigit()
 
-                if !unit.isEmpty {
-                    Text(unit)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
+                Text(unit)
+                    .font(.caption2)
+                    .foregroundStyle(
+                        .secondary
+                    )
             }
 
             Text(label)
                 .font(.caption2)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+                .foregroundStyle(
+                    .secondary
+                )
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 7)
+        .frame(
+            maxWidth: .infinity
+        )
+        .padding(.vertical, 8)
         .background(
-            .thinMaterial,
+            Color.white.opacity(0.055),
             in: RoundedRectangle(
-                cornerRadius: 12,
+                cornerRadius: 13,
                 style: .continuous
             )
         )
     }
 
-    private var controls: some View {
-        Button {
-            toggleTracking()
-        } label: {
-            Label(
-                locationManager.isTracking
-                ? "Termina attività"
-                : "Avvia",
-                systemImage: locationManager.isTracking
-                ? "stop.fill"
-                : "location.fill"
+    private func offRouteBanner(
+        distance:
+            CLLocationDistance
+    ) -> some View {
+        HStack(spacing: 9) {
+            Image(
+                systemName:
+                    "exclamationmark.triangle.fill"
             )
-            .frame(maxWidth: .infinity)
-            .font(.headline)
+            .foregroundStyle(.orange)
+
+            Text(
+                "Fuori traccia · \(formattedRouteDistance(distance))"
+            )
+            .font(
+                .caption
+                .weight(.semibold)
+            )
+
+            Spacer()
         }
-        .buttonStyle(.borderedProminent)
-        .tint(.orange)
-        .controlSize(.large)
+        .aretGlassCard(
+            cornerRadius: 18,
+            padding: 11
+        )
     }
 
-    private var weatherRefreshKey: String {
-        guard let location = locationManager.location else {
+    private var weatherRefreshKey:
+        String {
+        guard let location =
+                locationManager.location
+        else {
             return "none"
         }
 
         let lat =
             (
-                location.coordinate.latitude *
-                100
+                location
+                    .coordinate
+                    .latitude * 100
             ).rounded() / 100
 
         let lon =
             (
-                location.coordinate.longitude *
-                100
+                location
+                    .coordinate
+                    .longitude * 100
             ).rounded() / 100
 
         return "\(lat),\(lon)"
     }
 
-    private func toggleTracking() {
-        if locationManager.isTracking {
-            let activityName =
-                routeLibrary.activeRoute?.name ??
-                "Attività libera"
+    private func startTracking() {
+        locationManager
+            .requestPermission()
 
-            if let activity =
-                locationManager.stopTracking(
-                    name: activityName,
-                    sourceRouteID:
-                        routeLibrary.activeRoute?.id
-                ) {
-                activityStore.add(activity)
-                completedActivity = activity
-            }
-        } else {
-            locationManager.requestPermission()
+        let activityName =
+            routeLibrary
+                .activeRoute?
+                .name ??
+            "Attività libera"
 
-            let activityName =
-                routeLibrary.activeRoute?.name ??
-                "Attività libera"
-
-            locationManager.startTracking(
+        locationManager
+            .startTracking(
                 name: activityName
             )
+    }
+
+    private func stopTracking() {
+        let activityName =
+            routeLibrary
+                .activeRoute?
+                .name ??
+            "Attività libera"
+
+        if let activity =
+            locationManager.stopTracking(
+                name: activityName,
+                sourceRouteID:
+                    routeLibrary
+                        .activeRoute?
+                        .id
+            ) {
+            activityStore.add(activity)
+            completedActivity = activity
         }
     }
 
@@ -574,7 +1042,8 @@ struct ExploreView: View {
         guard let location =
                 locationManager.location
         else {
-            locationManager.requestPermission()
+            locationManager
+                .requestPermission()
             return
         }
 
@@ -584,21 +1053,24 @@ struct ExploreView: View {
             : 0
 
         withAnimation(
-            .easeInOut(duration: 0.35)
+            .easeInOut(
+                duration: 0.35
+            )
         ) {
             camera = .camera(
                 MapCamera(
                     centerCoordinate:
                         location.coordinate,
-                    distance: 900,
+                    distance: 850,
                     heading: heading,
-                    pitch: 50
+                    pitch: 58
                 )
             )
         }
     }
 
-    private func refreshWeather() async {
+    private func refreshWeather()
+        async {
         guard let location =
                 locationManager.location
         else {
@@ -608,13 +1080,13 @@ struct ExploreView: View {
         do {
             weather =
                 try await
-                FieldWeatherService.shared
-                    .currentWeather(at: location)
-
-            weatherError = nil
+                FieldWeatherService
+                    .shared
+                    .currentWeather(
+                        at: location
+                    )
         } catch {
-            weatherError =
-                error.localizedDescription
+            weather = nil
         }
     }
 
@@ -632,34 +1104,46 @@ struct ExploreView: View {
             )
 
         let minX =
-            points.map(\.x).min() ?? 0
+            points.map(.x).min() ?? 0
         let maxX =
-            points.map(\.x).max() ?? 0
+            points.map(.x).max() ?? 0
         let minY =
-            points.map(\.y).min() ?? 0
+            points.map(.y).min() ?? 0
         let maxY =
-            points.map(\.y).max() ?? 0
+            points.map(.y).max() ?? 0
 
         var rect = MKMapRect(
             x: minX,
             y: minY,
-            width: max(maxX - minX, 1),
-            height: max(maxY - minY, 1)
+            width: max(
+                maxX - minX,
+                1
+            ),
+            height: max(
+                maxY - minY,
+                1
+            )
         )
 
         rect = rect.insetBy(
-            dx: -rect.size.width * 0.18,
-            dy: -rect.size.height * 0.18
+            dx:
+                -rect.size.width *
+                0.22,
+            dy:
+                -rect.size.height *
+                0.22
         )
 
         camera = .rect(rect)
     }
 
     private func formattedRouteDistance(
-        _ distance: CLLocationDistance
+        _ distance:
+            CLLocationDistance
     ) -> String {
         if distance < 1000 {
-            return "\(Int(distance.rounded())) m"
+            return
+                "\(Int(distance.rounded())) m"
         }
 
         return String(
@@ -677,14 +1161,19 @@ struct ExploreView: View {
                 Int(seconds.rounded())
             )
 
-        let hours = total / 3600
+        let hours =
+            total / 3600
+
         let minutes =
             (total % 3600) / 60
-        let secs = total % 60
+
+        let secs =
+            total % 60
 
         if hours > 0 {
             return String(
-                format: "%d:%02d:%02d",
+                format:
+                    "%d:%02d:%02d",
                 hours,
                 minutes,
                 secs
@@ -692,7 +1181,8 @@ struct ExploreView: View {
         }
 
         return String(
-            format: "%02d:%02d",
+            format:
+                "%02d:%02d",
             minutes,
             secs
         )
