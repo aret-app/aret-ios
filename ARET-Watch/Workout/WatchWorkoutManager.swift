@@ -7,6 +7,7 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     @Published private(set) var isRunning = false
     @Published private(set) var heartRate: Double = 0
     @Published private(set) var elapsedTime: TimeInterval = 0
+    @Published private(set) var distanceMeters: Double = 0
 
     private let healthStore = HKHealthStore()
     private var session: HKWorkoutSession?
@@ -59,7 +60,18 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
 
         let start = Date()
         startedAt = start
+        distanceMeters = 0
+
         session.startActivity(with: start)
+
+        session.startMirroringToCompanionDevice { success, error in
+            if let error {
+                print("ARET workout mirroring error:", error.localizedDescription)
+            } else if !success {
+                print("ARET workout mirroring did not start.")
+            }
+        }
+
         builder.beginCollection(withStart: start) { _, error in
             if let error {
                 print("ARET begin workout error:", error.localizedDescription)
@@ -102,6 +114,13 @@ extension WatchWorkoutManager: HKWorkoutSessionDelegate {
                         }
                     }
                 }
+
+                workoutSession.stopMirroringToCompanionDevice { _, error in
+                    if let error {
+                        print("ARET stop mirroring error:", error.localizedDescription)
+                    }
+                }
+
                 isRunning = false
             }
         }
@@ -122,18 +141,27 @@ extension WatchWorkoutManager: HKLiveWorkoutBuilderDelegate {
         _ workoutBuilder: HKLiveWorkoutBuilder,
         didCollectDataOf collectedTypes: Set<HKSampleType>
     ) {
-        guard
-            let heartRateType = HKQuantityType.quantityType(forIdentifier: .heartRate),
-            collectedTypes.contains(heartRateType),
-            let statistics = workoutBuilder.statistics(for: heartRateType),
-            let quantity = statistics.mostRecentQuantity()
-        else { return }
+        if let heartRateType = HKQuantityType.quantityType(forIdentifier: .heartRate),
+           collectedTypes.contains(heartRateType),
+           let statistics = workoutBuilder.statistics(for: heartRateType),
+           let quantity = statistics.mostRecentQuantity() {
+            let unit = HKUnit.count().unitDivided(by: .minute())
+            let bpm = quantity.doubleValue(for: unit)
 
-        let unit = HKUnit.count().unitDivided(by: .minute())
-        let bpm = quantity.doubleValue(for: unit)
+            Task { @MainActor in
+                heartRate = bpm
+            }
+        }
 
-        Task { @MainActor in
-            heartRate = bpm
+        if let distanceType = HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning),
+           collectedTypes.contains(distanceType),
+           let statistics = workoutBuilder.statistics(for: distanceType),
+           let quantity = statistics.sumQuantity() {
+            let meters = quantity.doubleValue(for: .meter())
+
+            Task { @MainActor in
+                distanceMeters = meters
+            }
         }
     }
 }
