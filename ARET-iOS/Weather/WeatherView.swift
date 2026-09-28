@@ -97,9 +97,21 @@ struct WeatherView: View {
             }
             .navigationTitle("Meteo")
             .toolbar {
-                ToolbarItem(
+                ToolbarItemGroup(
                     placement: .topBarTrailing
                 ) {
+                    Button {
+                        showPlaceSearch = true
+                    } label: {
+                        Image(
+                            systemName:
+                                "location.magnifyingglass"
+                        )
+                    }
+                    .accessibilityLabel(
+                        "Scegli località meteo"
+                    )
+
                     Button {
                         Task {
                             await loadWeather()
