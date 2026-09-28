@@ -17,8 +17,20 @@ struct WeatherView: View {
                         VStack(alignment: .leading, spacing: 22) {
                             locationHeader
                             currentConditions(forecast)
-                            hourlyForecast(forecast.hourly)
-                            dailyForecast(forecast.daily)
+
+                            if let route = routeLibrary.activeRoute {
+                                weatherWindowSection(
+                                    forecast: forecast,
+                                    route: route
+                                )
+                            }
+
+                            hourlyForecast(
+                                Array(forecast.hourly.prefix(12))
+                            )
+                            dailyForecast(
+                                Array(forecast.daily.prefix(3))
+                            )
                             sourceFooter(forecast)
                         }
                         .padding()
@@ -56,6 +68,9 @@ struct WeatherView: View {
         }
         .task(id: weatherTargetKey) {
             await loadWeather()
+        }
+        .task {
+            await hourlyRefreshLoop()
         }
     }
 
@@ -165,6 +180,68 @@ struct WeatherView: View {
                     icon: "drop.fill"
                 )
             }
+        }
+        .padding(18)
+        .background(
+            .ultraThinMaterial,
+            in: RoundedRectangle(cornerRadius: 24, style: .continuous)
+        )
+    }
+
+
+    private func weatherWindowSection(
+        forecast: WeatherForecast,
+        route: RouteLibraryItem
+    ) -> some View {
+        let todayKey = dateKey(
+            date: Date(),
+            timezoneIdentifier: forecast.timezone
+        )
+
+        let todayHours = forecast.hourly.filter {
+            $0.dateKey == todayKey
+        }
+
+        let window = WeatherWindowEngine.bestWindow(
+            hours: todayHours,
+            routeKind: route.kind
+        )
+
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Finestra meteo favorevole")
+                        .font(.headline)
+
+                    Text(window.quality.rawValue)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(
+                            window.quality == .favorable
+                            ? .green
+                            : .orange
+                        )
+                }
+
+                Spacer()
+
+                Image(systemName: "clock.badge.checkmark")
+                    .font(.title2)
+                    .foregroundStyle(.orange)
+            }
+
+            Text(window.timeRangeText)
+                .font(.system(size: 30, weight: .semibold))
+                .monospacedDigit()
+
+            Text(window.reasons.joined(separator: " · "))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            Text(
+                "Ricalcolo automatico almeno ogni ora mentre ARET è aperta."
+            )
+            .font(.caption2)
+            .foregroundStyle(.secondary)
         }
         .padding(18)
         .background(
@@ -319,6 +396,31 @@ struct WeatherView: View {
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
+    }
+
+
+    private func dateKey(
+        date: Date,
+        timezoneIdentifier: String
+    ) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.timeZone =
+            TimeZone(identifier: timezoneIdentifier) ?? .current
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
+    }
+
+    private func hourlyRefreshLoop() async {
+        while !Task.isCancelled {
+            try? await Task.sleep(
+                nanoseconds: 3_600_000_000_000
+            )
+
+            guard !Task.isCancelled else { return }
+            await loadWeather()
+        }
     }
 
     private func loadWeather() async {
