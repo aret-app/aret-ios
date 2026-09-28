@@ -135,7 +135,7 @@ actor FieldWeatherService {
             ),
             URLQueryItem(
                 name: "hourly",
-                value: "temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_gusts_10m"
+                value: "temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,visibility,freezing_level_height"
             ),
             URLQueryItem(
                 name: "daily",
