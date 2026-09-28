@@ -95,6 +95,14 @@ struct ExploreView: View {
                     )
                 }
 
+                if let lastGPX = locationManager.lastRecordedGPXURL {
+                    ShareLink(item: lastGPX) {
+                        Label("Share last GPX", systemImage: "square.and.arrow.up")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                }
+
                 HStack(spacing: 10) {
                     Button {
                         showGPXImporter = true
