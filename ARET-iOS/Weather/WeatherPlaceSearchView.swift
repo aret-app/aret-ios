@@ -111,9 +111,17 @@ struct WeatherPlaceSearchView: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .aretScreenBackground()
             .navigationTitle("Località meteo")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(
+                    placement: .principal
+                ) {
+                    ARETMark(size: 24)
+                }
+
                 ToolbarItem(
                     placement: .cancellationAction
                 ) {
