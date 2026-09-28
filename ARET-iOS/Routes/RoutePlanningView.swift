@@ -163,7 +163,10 @@ struct RoutePlanningView: View {
 
             HStack(spacing: 10) {
                 infoPill(
-                    "\(route.distanceKilometers, specifier: "%.1f") km",
+                    String(
+                        format: "%.1f km",
+                        route.distanceKilometers
+                    ),
                     icon: "point.topleft.down.to.point.bottomright.curvepath"
                 )
                 infoPill(
