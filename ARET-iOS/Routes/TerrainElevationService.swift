@@ -119,10 +119,7 @@ actor TerrainElevationService {
                 name: "latitude",
                 value: coordinates
                     .map {
-                        String(
-                            format: "%.6f",
-                            $0.latitude
-                        )
+                        String($0.latitude)
                     }
                     .joined(separator: ",")
             ),
@@ -130,10 +127,7 @@ actor TerrainElevationService {
                 name: "longitude",
                 value: coordinates
                     .map {
-                        String(
-                            format: "%.6f",
-                            $0.longitude
-                        )
+                        String($0.longitude)
                     }
                     .joined(separator: ",")
             )
