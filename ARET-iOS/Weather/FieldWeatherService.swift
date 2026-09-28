@@ -96,7 +96,8 @@ actor FieldWeatherService {
     static let shared = FieldWeatherService()
 
     func currentWeather(at location: CLLocation) async throws -> WeatherSnapshot {
-        try await forecast(at: location).current
+        let result = try await forecast(at: location)
+        return result.current
     }
 
     func forecast(at location: CLLocation) async throws -> WeatherForecast {
