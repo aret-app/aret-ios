@@ -115,9 +115,7 @@ final class RouteLibraryStore: ObservableObject {
         let id = "recorded-\(activity.id.uuidString)"
 
         if let existing = savedRouteRecords.first(where: { $0.id == id }) {
-            let item = existing.libraryItem
-            activeRoute = item
-            return item
+            return existing.libraryItem
         }
 
         let stats = activity.stats
@@ -136,9 +134,7 @@ final class RouteLibraryStore: ObservableObject {
         savedRouteRecords.insert(record, at: 0)
         persist()
 
-        let item = record.libraryItem
-        activeRoute = item
-        return item
+        return record.libraryItem
     }
 
     func deletePersonalRoute(_ route: RouteLibraryItem) {
