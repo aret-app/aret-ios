@@ -69,6 +69,38 @@ struct RoutePlannerSearchView: View {
                 }
             }
 
+            if !searchText.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            ).isEmpty {
+                Section {
+                    Button {
+                        Task {
+                            await searchOnline()
+                        }
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "magnifyingglass")
+                            Text("Cerca itinerari pubblici")
+                                .font(.subheadline.weight(.semibold))
+                            Spacer()
+                            Image(systemName: "arrow.right")
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.aretOrange)
+                    .disabled(isSearchingOnline)
+
+                    Text(
+                        "I risultati OSM possono essere incompleti o contenere tratti non collegati. Controlla sempre il percorso prima di partire."
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                } header: {
+                    Text("Ricerca online gratuita")
+                }
+            }
+
             if isSearchingOnline {
                 Section("Percorsi online") {
                     HStack {
@@ -301,6 +333,7 @@ struct RoutePlanningView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 routeHeader
+                HikingRoutePreview(route: plannedRoute)
                 planningControls
 
                 if let forecast {
