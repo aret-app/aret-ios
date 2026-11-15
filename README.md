@@ -131,3 +131,8 @@ e non deve essere considerato automaticamente equivalente a `main`.
   contrattuale e spesso un'infrastruttura cache dedicata.
 
 Consulta la documentazione collegata prima di ampliare l'app.
+
+## Licenza / License
+
+ARET iOS è rilasciato con licenza [Mozilla Public License 2.0](LICENSE).
+ARET iOS is released under the [Mozilla Public License 2.0](LICENSE). Map data © OpenStreetMap contributors.
