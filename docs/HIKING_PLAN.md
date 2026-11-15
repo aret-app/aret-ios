@@ -55,6 +55,9 @@ Climbing and alpinism will add detail without burdening the hiking flow.
 - [x] Hiking/ferrata OSM relations only displayed when required way
   geometry exists and joins continuously; standalone technical sections
   remain visibly separate from full routes.
+- [x] Show nearby OSM path/footway **segments** around the named summit,
+  with sourced `sac_scale`/`cai_scale` tags when present and no
+  false claim of a complete ascent.
 - [x] Source-backed prose guides for Procinto/Pisanino and six Appennino
   destinations (Cusna, Succiso, Orsaro, Sillara, Bismantova, Acuto).
   Ten textual entries in total; none claims verified GPS geometry.
