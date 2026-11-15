@@ -529,98 +529,21 @@ struct WeatherView: View {
     ) -> some View {
         let todayKey = dateKey(
             date: Date(),
-            timezoneIdentifier:
-                forecast.timezone
+            timezoneIdentifier: forecast.timezone
         )
-
-        let todayHours =
-            forecast.hourly.filter {
-                $0.dateKey == todayKey
-            }
-
-        let window =
-            WeatherWindowEngine
-                .bestWindow(
-                    hours: todayHours,
-                    routeKind: route.kind
-                )
-
-        return VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                VStack(
-                    alignment: .leading,
-                    spacing: 3
-                ) {
-                    Text(
-                        window.quality == .noClearWindow
-                            ? "Nessuna finestra meteo chiara"
-                            : "Finestra meteo da valutare"
-                    )
-                    .font(.headline)
-
-                    Text(
-                        window.quality.rawValue
-                    )
-                    .font(
-                        .caption
-                        .weight(.semibold)
-                    )
-                    .foregroundStyle(
-                        window.quality ==
-                            .favorable
-                        ? .green
-                        : .orange
-                    )
-                }
-
-                Spacer()
-
-                Image(
-                    systemName:
-                        "clock.badge.checkmark"
-                )
-                .font(.title2)
-                .foregroundStyle(.aretOrange)
-            }
-
-            Text(window.timeRangeText)
-                .font(
-                    .system(
-                        size: 30,
-                        weight: .semibold
-                    )
-                )
-                .monospacedDigit()
-
-            Text(
-                window.reasons.joined(
-                    separator: " · "
-                )
-            )
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-
-            Text(
-                "Ricalcolo automatico almeno ogni ora mentre ARET è aperta."
-            )
-            .font(.caption2)
-            .foregroundStyle(.secondary)
+        let todayHours = forecast.hourly.filter {
+            $0.dateKey == todayKey
         }
-        .padding(18)
-        .background(
-            .ultraThinMaterial,
-            in: RoundedRectangle(
-                cornerRadius: 24,
-                style: .continuous
-            )
+        let window = WeatherWindowEngine.bestWindow(
+            hours: todayHours,
+            routeKind: route.kind
         )
 
-        HikingWeatherAdviceCard(
+        return MountainWeatherDashboard(
             hours: todayHours,
             window: window,
-            maximumRouteAltitudeMeters:
-                route.maximumAltitudeMeters
+            route: route,
+            retrievedAt: forecast.current.fetchedAt
         )
     }
 
