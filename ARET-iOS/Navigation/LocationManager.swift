@@ -26,10 +26,11 @@ final class LocationManager: NSObject, ObservableObject {
         manager.delegate = self
         manager.activityType = .fitness
 
-        // Dense, navigation-grade updates for the active field test.
-        manager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
-        manager.distanceFilter = kCLDistanceFilterNone
-        manager.pausesLocationUpdatesAutomatically = false
+        // While browsing the map, do not consume navigation-grade GPS
+        // power. Switch to dense tracking only for an active recording.
+        manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+        manager.distanceFilter = 25
+        manager.pausesLocationUpdatesAutomatically = true
 
         authorizationStatus = manager.authorizationStatus
 
@@ -78,6 +79,9 @@ final class LocationManager: NSObject, ObservableObject {
                 )
         }
 
+        manager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
+        manager.distanceFilter = kCLDistanceFilterNone
+        manager.pausesLocationUpdatesAutomatically = false
         manager.allowsBackgroundLocationUpdates = true
         manager.showsBackgroundLocationIndicator = true
         manager.startUpdatingLocation()
@@ -91,6 +95,9 @@ final class LocationManager: NSObject, ObservableObject {
 
         isTracking = false
         manager.allowsBackgroundLocationUpdates = false
+        manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+        manager.distanceFilter = 25
+        manager.pausesLocationUpdatesAutomatically = true
 
         let endedAt = Date()
         let startedAt = trackingStartedAt ?? recordedLocations.first?.timestamp ?? endedAt
