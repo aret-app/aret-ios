@@ -1080,7 +1080,11 @@ struct ExploreView: View {
                         .activeRoute?
                         .id
             ) {
-            activityStore.add(activity)
+            if activityStore.add(activity) {
+                locationManager.confirmRecordingSaved()
+            } else {
+                locationManager.recordingError = "Attività non salvata. Registrazione conservata per il recupero."
+            }
             completedActivity = activity
         }
     }

@@ -142,3 +142,21 @@ exists. This checklist is how to build **credible local coverage**.
 4. Correct GPX writes while locked and robust Watch lifecycle.
 5. Provider budgets/caching and offline map supply.
 6. Safety language, attribution and rights review.
+
+## Recording recovery #4 — required hardware validation (not yet executed)
+
+- Build iOS, Watch and Live Activity with Xcode/Swift 6; run host journal tests.
+- Record, force-quit without Stop, relaunch: recovery banner appears; recovery
+  produces all completed journal points, original start, final GPS end time.
+- Relaunch again: no duplicate activity. Interrupt recovery after GPX write,
+  and after activity-index write: retry yields the same UUID and GPX filename.
+- Force disk-write/index failures: show error, retain journal, retry successfully.
+- Run 3–5 hours with locked iPhone, including airplane mode; compare GPS count,
+  UI responsiveness, battery and storage with baseline. No timer flush needed.
+- Start/stop from Watch with phone locked: one GPX/activity, journal removed
+  only after success. Reopen after termination with a Watch workout active:
+  pending points must not be overwritten; document mirroring behavior.
+- Reboot mid-recording: before first unlock files must stay protected; after
+  unlock recover saved points. Do not promise GPS collection while terminated.
+- Test single-point, empty journal, partial last write and corrupt full line:
+  preserve original files; errors must not silently discard the recording.

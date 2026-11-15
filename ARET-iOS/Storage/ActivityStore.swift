@@ -22,11 +22,12 @@ final class ActivityStore: ObservableObject {
         load()
     }
 
-    func add(_ activity: RecordedActivity) {
+    @discardableResult
+    func add(_ activity: RecordedActivity) -> Bool {
         activities.removeAll { $0.id == activity.id }
         activities.insert(activity, at: 0)
         activities.sort { $0.startedAt > $1.startedAt }
-        persist()
+        return persist()
     }
 
     func delete(at offsets: IndexSet) {
@@ -76,14 +77,17 @@ final class ActivityStore: ObservableObject {
         activities = decoded.sorted { $0.startedAt > $1.startedAt }
     }
 
-    private func persist() {
+    @discardableResult
+    private func persist() -> Bool {
         do {
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             let data = try encoder.encode(activities)
             try PrivateStorage.writeProtected(data, to: storeURL)
+            return true
         } catch {
             print("ARET activity persistence error:", error.localizedDescription)
+            return false
         }
     }
 }
