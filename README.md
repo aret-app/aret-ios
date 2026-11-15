@@ -35,7 +35,7 @@ nella modalità *ARET Sentieri (beta)*.
 **Itinerari** → scorciatoie di vette, filtro geografico (entrambe/Apuane/
 Appennino), catalogo di cime `natural=peak` da OpenStreetMap, ricerca
 delle route relations e dei segmenti di ferrata effettivamente mappati.
-Schede di salita curate e corredate di fonte per **Procinto e Pisanino**.
+Schede descrittive con fonte per **Procinto, Pisanino, Cusna, Alpe di Succiso, Orsaro, Sillara, Pietra di Bismantova e Monte Acuto** (senza GPX garantiti).
 Importazione ed esportazione **GPX**, libreria percorsi personali.
 
 **Attività** → cronologia GPS, statistiche e riutilizzo delle attività
