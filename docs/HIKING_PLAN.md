@@ -55,8 +55,9 @@ Climbing and alpinism will add detail without burdening the hiking flow.
 - [x] Hiking/ferrata OSM relations only displayed when required way
   geometry exists and joins continuously; standalone technical sections
   remain visibly separate from full routes.
-- [x] Source-backed prose guides for Procinto Ferrata Bruni,
-  Pisanino normal route, Pisanino Bagola Bianca.
+- [x] Source-backed prose guides for Procinto/Pisanino and six Appennino
+  destinations (Cusna, Succiso, Orsaro, Sillara, Bismantova, Acuto).
+  Ten textual entries in total; none claims verified GPS geometry.
 - [x] Show OSM `sac_scale` / `via_ferrata_scale` only if tags exist,
   never invent a route grade from altitude or nearby proximity.
 
@@ -165,6 +166,10 @@ coordinates; the basemap tiles still need a separately licenced offline pack.
 - **Monte Pisanino:** Via normale via Foce di Cardeto / Canale delle
   Rose (EE) and Bagola Bianca (exposed, I-grade passages), both with
   source links and explicit technical warnings.
+- **Appennino:** Cusna (two options), Alpe di Succiso, Monte Orsaro,
+  Monte Sillara, Pietra di Bismantova and Monte Acuto have short
+  source-linked descriptions based on the National Park's itineraries;
+  T/T+/E/E+ refer to that specific source's classification.
 - These curated options have NO GPS geometry until verified against a
   complete legal/licensed track. They are not drawn as pretend routes.
 - OpenStreetMap relations are shown only when mapable continuous
