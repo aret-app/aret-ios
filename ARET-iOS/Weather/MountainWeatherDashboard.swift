@@ -510,14 +510,14 @@ struct MountainWeatherDashboard: View {
             ForEach(
                 Array(assessment.reasons.enumerated()),
                 id: \.offset
-            ) { _, reason in
+            ) { item in
                 HStack(alignment: .top, spacing: 9) {
                     Image(systemName: "checkmark.seal.fill")
                         .foregroundStyle(advisoryColor)
                         .font(.caption)
                         .padding(.top, 2)
 
-                    Text(reason)
+                    Text(item.element)
                         .font(.subheadline)
                         .fixedSize(horizontal: false, vertical: true)
                 }
