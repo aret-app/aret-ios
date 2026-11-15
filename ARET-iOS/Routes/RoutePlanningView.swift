@@ -436,7 +436,8 @@ struct RoutePlanningView: View {
                         hours: hours,
                         window: window,
                         route: plannedRoute,
-                        retrievedAt: forecast.current.fetchedAt
+                        retrievedAt: forecast.current.fetchedAt,
+                        samplingPoints: forecast.samplingPointCount
                     )
 
                     selectedDayHourly(hours)
@@ -543,7 +544,7 @@ struct RoutePlanningView: View {
         } message: {
             Text(exportError ?? "Errore sconosciuto.")
         }
-        .task(id: selectedDateKeyForTask) {
+        .task(id: routeForecastKeyForTask) {
             await loadWeather()
         }
         .task(id: route.id) {
@@ -872,10 +873,8 @@ struct RoutePlanningView: View {
         return "contenuto"
     }
 
-    private var selectedDateKeyForTask: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        return "\(plannedRoute.id)-\(plannedRoute.maximumAltitudeMeters)-\(formatter.string(from: selectedDate))"
+    private var routeForecastKeyForTask: String {
+        "\(plannedRoute.id)-\(plannedRoute.maximumAltitudeMeters)-\(plannedRoute.coordinates.count)"
     }
 
     private func hoursForSelectedDate(
@@ -979,8 +978,8 @@ struct RoutePlanningView: View {
                         coordinates: route.coordinates
                     )
 
-            // Refresh weather at the now-known mountain altitude.
-            await loadWeather()
+            // The weather task observes the DEM-derived route elevation
+            // and reloads when that input changes.
         } catch {
             terrainProfile = nil
             terrainError = error.localizedDescription
@@ -1000,9 +999,8 @@ struct RoutePlanningView: View {
         errorMessage = nil
 
         do {
-            forecast = try await FieldWeatherService.shared.forecast(
-                at: location
-            )
+            forecast = try await FieldWeatherService.shared
+                .forecastAlongRoute(plannedRoute)
         } catch {
             forecast = nil
             errorMessage =
