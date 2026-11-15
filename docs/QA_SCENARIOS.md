@@ -43,6 +43,8 @@ screenshots, and any failure in the PR/issue.
 | Choose a named OSM peak | Exact returned node coordinate used for nearby search |
 | 429, 500 or API timeout | Explicit error, cached indexed peaks/local shortcuts still accessible |
 | Missing difficulty tag | "Non specificata/da verificare"; never "facile" by default |
+| Nearby OSM path section | Show actual way geometry and sourced difficulty if present; never a complete ascent |
+| OSM path with `via_ferrata_scale` | Treat as technical/ferrata data, not a harmless hiking path |
 | OSM relation with missing way geometry | Rejected from navigable list |
 | Ferrata mapped as a way only | Partial technical segment preview, not a full summit route |
 | Search an out-of-region mountain | Do not show another country's unrelated tracks |
