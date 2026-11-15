@@ -106,11 +106,17 @@ confirm licensing of any external topo/guide content.
 
 ## Source-backed textual ascents
 
-`MountainAscentGuide.swift` currently contains **only three** manual
-records: Procinto Bruni, Pisanino normal route, Pisanino Bagola Bianca.
-These are all **Apuane** and do not appear under the Appennino-only
-filter. They include source URLs, warnings, and technical labels.
-**They do not include any complete verified GPX geometry.**
+`MountainAscentGuide.swift` currently includes **10 short source-backed
+textual descriptions of ascents across 8 mountains**.
+Apuane: Procinto (Ferrata Bruni), Pisanino (via normale and Bagola Bianca).
+Appennino: Monte Cusna (two options), Alpe di Succiso, Monte Orsaro,
+Monte Sillara, Pietra di Bismantova and Monte Acuto.
+The Appennino pages link to official National Park itinerary pages;
+the stated T/T+/E/E+ labels are **the Park's classification of those
+specific proposals**, not an independent ARET difficulty certification.
+They are region-filtered and **none contains a verified full GPX**.
+Always check the original source for current closure, route changes
+or seasonal conditions. Human field verification remains outstanding.
 
 Expand carefully with an approved content workflow:
 1. Obtain explicit source and usage rights for description/photographs/
