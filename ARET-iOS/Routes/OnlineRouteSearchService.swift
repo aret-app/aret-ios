@@ -24,7 +24,11 @@ final class OnlineRouteSearchService {
         try await discover(query: query).routes
     }
 
-    func discover(query: String) async throws -> MountainRouteSearchResult {
+    func discover(
+        query: String,
+        scope: ARETDiscoveryScope = .both,
+        summit: ARETPeak? = nil
+    ) async throws -> MountainRouteSearchResult {
         let trimmed = query.trimmingCharacters(
             in: .whitespacesAndNewlines
         )
@@ -32,23 +36,56 @@ final class OnlineRouteSearchService {
             return MountainRouteSearchResult(routes: [], technicalSegments: [])
         }
 
-        let geocodingQuery =
-            MountainAscentLibrary.preferredSearchCenter(for: trimmed)
-            ?? trimmed
+        let center = try? await resolveCenter(
+            query: trimmed,
+            scope: scope,
+            summit: summit
+        )
 
-        let center = try await geocode(query: geocodingQuery)
-        let overpassQuery = """
-        [out:json][timeout:30];
-        (
-          relation(around:12000,\(center.latitude),\(center.longitude))
-            ["type"="route"]["route"~"^(hiking|foot|via_ferrata)$"];
-          way(around:5000,\(center.latitude),\(center.longitude))
-            ["highway"="via_ferrata"];
-          way(around:5000,\(center.latitude),\(center.longitude))
-            ["via_ferrata_scale"];
-        );
-        out tags center geom;
-        """
+        // Search for complete mapped routes around the actual summit when
+        // known. For a named "via" without a geocodable summit, search
+        // named OSM relations/ways in the two pilot regions directly.
+        let overpassQuery: String
+        if let center {
+            overpassQuery = """
+            [out:json][timeout:30];
+            (
+              relation(around:12000,\(center.latitude),\(center.longitude))
+                ["type"="route"]["route"~"^(hiking|foot|via_ferrata)$"];
+              way(around:5000,\(center.latitude),\(center.longitude))
+                ["highway"="via_ferrata"];
+              way(around:5000,\(center.latitude),\(center.longitude))
+                ["via_ferrata_scale"];
+            );
+            out tags center geom;
+            """
+        } else {
+            let pattern = NSRegularExpression.escapedPattern(
+                for: String(trimmed.prefix(70))
+                    .replacingOccurrences(of: "\"", with: "")
+            )
+
+            let regionFilters = scope.regions.map { region in
+                let bbox = region.overpassBoundingBox
+                return """
+                relation["type"="route"]
+                  ["route"~"^(hiking|foot|via_ferrata)$"]
+                  ["name"~"\(pattern)",i](\(bbox));
+                way["highway"="via_ferrata"]
+                  ["name"~"\(pattern)",i](\(bbox));
+                way["via_ferrata_scale"]
+                  ["name"~"\(pattern)",i](\(bbox));
+                """
+            }.joined(separator: "\n")
+
+            overpassQuery = """
+            [out:json][timeout:30];
+            (
+              \(regionFilters)
+            );
+            out tags center geom;
+            """
+        }
 
         guard let url = URL(
             string: "https://overpass-api.de/api/interpreter"
@@ -92,7 +129,8 @@ final class OnlineRouteSearchService {
             mapRelation(
                 relation,
                 searchCenter: center,
-                query: trimmed
+                query: trimmed,
+                scope: scope
             )
         }
         .sorted {
@@ -105,7 +143,7 @@ final class OnlineRouteSearchService {
 
         let technicalSegments = decoded.elements
             .filter { $0.type == "way" }
-            .compactMap { mapTechnicalSegment($0) }
+            .compactMap { mapTechnicalSegment($0, scope: scope) }
             .sorted { $0.name < $1.name }
 
         // Both whole route relations and isolated ferrata sections are
@@ -117,7 +155,8 @@ final class OnlineRouteSearchService {
     }
 
     private func mapTechnicalSegment(
-        _ way: OverpassElement
+        _ way: OverpassElement,
+        scope: ARETDiscoveryScope
     ) -> OSMTechnicalSegment? {
         guard
             let raw = way.geometry,
@@ -136,7 +175,10 @@ final class OnlineRouteSearchService {
             )
         }
 
-        guard points.count >= 2 else { return nil }
+        guard
+            points.count >= 2,
+            points.contains(where: { scope.contains($0.clLocationCoordinate) })
+        else { return nil }
 
         return OSMTechnicalSegment(
             id: "osm-ferrata-way-\(way.id)",
@@ -152,29 +194,76 @@ final class OnlineRouteSearchService {
         )
     }
 
-    private func geocode(
-        query: String
+    private func resolveCenter(
+        query: String,
+        scope: ARETDiscoveryScope,
+        summit: ARETPeak?
     ) async throws -> CLLocationCoordinate2D {
-        let request = MKLocalSearch.Request()
-        request.naturalLanguageQuery = query
-        request.resultTypes = [.address, .pointOfInterest]
-
-        let response = try await MKLocalSearch(
-            request: request
-        ).start()
-
-        guard let coordinate =
-            response.mapItems.first?.placemark.coordinate
-        else {
-            throw RouteSearchError.placeNotFound
+        if let summit, scope.regions.contains(summit.region) {
+            return summit.coordinate
         }
-        return coordinate
+
+        if let cached = ARETPeakDiscoveryService.shared.exactOrCloseMatch(
+            query: query,
+            scope: scope
+        ) {
+            return cached.coordinate
+        }
+
+        let geocodingQuery =
+            MountainAscentLibrary.preferredSearchCenter(for: query)
+            ?? query
+        let hasCuratedCenter =
+            MountainAscentLibrary.preferredSearchCenter(for: query) != nil
+
+        for region in scope.regions {
+            let request = MKLocalSearch.Request()
+            request.naturalLanguageQuery = geocodingQuery
+            request.resultTypes = [.address, .pointOfInterest]
+            request.region = region.mapRegion
+
+            guard let response =
+                try? await MKLocalSearch(request: request).start()
+            else { continue }
+
+            // MKLocalSearch region is only a bias, NOT a geofence.
+            // Require both region and plausible place name to avoid
+            // silently showing routes around a different mountain.
+            let normalized = Self.normalize(query)
+            for item in response.mapItems {
+                let point = item.placemark.coordinate
+                guard
+                    region.contains(point),
+                    let rawName = item.placemark.name
+                else { continue }
+
+                let itemName = Self.normalize(rawName)
+                let plausible = hasCuratedCenter ||
+                    itemName.contains(normalized) ||
+                    normalized.contains(itemName)
+
+                if plausible {
+                    return point
+                }
+            }
+        }
+
+        throw RouteSearchError.placeNotFound
+    }
+
+    private static func normalize(_ text: String) -> String {
+        text.folding(
+            options: [.caseInsensitive, .diacriticInsensitive],
+            locale: Locale(identifier: "it_IT")
+        )
+        .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func mapRelation(
         _ relation: OverpassElement,
-        searchCenter: CLLocationCoordinate2D,
-        query: String
+        searchCenter: CLLocationCoordinate2D?,
+        query: String,
+        scope: ARETDiscoveryScope
     ) -> MappedRoute? {
         guard
             let tags = relation.tags,
@@ -223,20 +312,29 @@ final class OnlineRouteSearchService {
             return nil
         }
 
-        let center = CLLocation(
-            latitude: searchCenter.latitude,
-            longitude: searchCenter.longitude
-        )
-        let nearestDistance = coordinates.map {
-            CLLocation(
-                latitude: $0.latitude,
-                longitude: $0.longitude
-            ).distance(from: center)
-        }.min() ?? .greatestFiniteMagnitude
+        // Only retain features inside the designated test mountain areas.
+        guard coordinates.contains(where: {
+            scope.contains($0.clLocationCoordinate)
+        }) else { return nil }
 
-        // A relation merely passing through the surrounding 12km zone
-        // need not be an ascent to the summit. Prefer actual nearby lines.
-        guard nearestDistance <= 6_500 else { return nil }
+        let nearestDistance: CLLocationDistance
+        if let searchCenter {
+            let center = CLLocation(
+                latitude: searchCenter.latitude,
+                longitude: searchCenter.longitude
+            )
+            nearestDistance = coordinates.map {
+                CLLocation(
+                    latitude: $0.latitude,
+                    longitude: $0.longitude
+                ).distance(from: center)
+            }.min() ?? .greatestFiniteMagnitude
+
+            // Nearby OSM relations are not automatically summit routes.
+            guard nearestDistance <= 6_500 else { return nil }
+        } else {
+            nearestDistance = 0
+        }
 
         let name = tags["name:it"]
             ?? tags["name"]
