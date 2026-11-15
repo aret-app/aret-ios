@@ -304,6 +304,8 @@ struct RoutePlanningView: View {
     @State private var terrainProfile: TerrainElevationProfile?
     @State private var isLoadingTerrain = false
     @State private var terrainError: String?
+    @State private var exportedGPX: ExportedRouteFile?
+    @State private var exportError: String?
 
     private var plannedRoute: RouteLibraryItem {
         var value = route
@@ -400,6 +402,24 @@ struct RoutePlanningView: View {
                 }
 
                 Button {
+                    do {
+                        exportedGPX = ExportedRouteFile(
+                            url: try RouteGPXExporter.export(plannedRoute)
+                        )
+                    } catch {
+                        exportError = error.localizedDescription
+                    }
+                } label: {
+                    Label(
+                        "Scarica o condividi GPX",
+                        systemImage: "square.and.arrow.down"
+                    )
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .disabled(plannedRoute.coordinates.count < 2)
+
+                Button {
                     routeLibrary.select(plannedRoute)
                 } label: {
                     Label(
@@ -428,6 +448,20 @@ struct RoutePlanningView: View {
             ) {
                 ARETMark(size: 26)
             }
+        }
+        .sheet(item: $exportedGPX) { file in
+            ARETGPXShareSheet(url: file.url)
+        }
+        .alert(
+            "Esportazione GPX non riuscita",
+            isPresented: Binding(
+                get: { exportError != nil },
+                set: { if !$0 { exportError = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(exportError ?? "Errore sconosciuto.")
         }
         .task(id: selectedDateKeyForTask) {
             await loadWeather()
