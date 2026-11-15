@@ -210,6 +210,13 @@ struct ExploreView: View {
         ) {
             await refreshWeather()
         }
+        .onChange(of: mapDisplayStyleRaw) { _, _ in
+            if routeLibrary.activeRoute != nil {
+                fitCameraToActiveRoute()
+            } else {
+                centerOnUser()
+            }
+        }
         .onChange(
             of: routeLibrary
                 .activeRoute?
