@@ -14,6 +14,7 @@ struct RoutePlannerSearchView: View {
 
     @State private var searchText = ""
     @State private var onlineRoutes: [RouteLibraryItem] = []
+    @State private var technicalSegments: [OSMTechnicalSegment] = []
     @State private var isSearchingOnline = false
     @State private var onlineError: String?
 
@@ -176,6 +177,29 @@ struct RoutePlannerSearchView: View {
                 }
             }
 
+            if !technicalSegments.isEmpty {
+                Section {
+                    ForEach(technicalSegments) { segment in
+                        TechnicalSegmentPreview(segment: segment)
+                            .listRowInsets(
+                                EdgeInsets(
+                                    top: 7,
+                                    leading: 12,
+                                    bottom: 7,
+                                    trailing: 12
+                                )
+                            )
+                            .listRowBackground(Color.clear)
+                    }
+                } header: {
+                    Text("Tratti di ferrata realmente mappati")
+                } footer: {
+                    Text(
+                        "Sono segmenti OSM, NON percorsi completi per raggiungere la vetta. Non sono esportabili come vie di salita."
+                    )
+                }
+            }
+
             if let onlineError {
                 Section("Ricerca online") {
                     Text(onlineError)
@@ -198,6 +222,7 @@ struct RoutePlannerSearchView: View {
             if !searchText.isEmpty &&
                localRoutes.isEmpty &&
                onlineRoutes.isEmpty &&
+               technicalSegments.isEmpty &&
                ascentGuides.isEmpty &&
                !isSearchingOnline &&
                onlineError == nil {
@@ -236,6 +261,7 @@ struct RoutePlannerSearchView: View {
         .onChange(of: searchText) {
             _, _ in
             onlineRoutes = []
+            technicalSegments = []
             onlineError = nil
         }
     }
@@ -316,17 +342,18 @@ struct RoutePlannerSearchView: View {
         isSearchingOnline = true
         onlineError = nil
         onlineRoutes = []
+        technicalSegments = []
 
         do {
-            onlineRoutes =
-                try await
-                OnlineRouteSearchService
-                    .shared
-                    .search(query: trimmed)
+            let result = try await OnlineRouteSearchService
+                .shared
+                .discover(query: trimmed)
+            onlineRoutes = result.routes
+            technicalSegments = result.technicalSegments
 
-            if onlineRoutes.isEmpty {
+            if onlineRoutes.isEmpty && technicalSegments.isEmpty {
                 onlineError =
-                    "Nessuna relazione di percorso OSM continua trovata nelle vicinanze. Vedi le vie documentate sopra, se disponibili. La copertura OSM non è completa."
+                    "Nessuna traccia OSM utilizzabile trovata vicino alla località. La copertura OpenStreetMap può essere incompleta: consulta le vie documentate."
             }
         } catch {
             onlineError =
