@@ -241,7 +241,7 @@ struct WeatherView: View {
             ).rounded() / 10_000
 
         return
-            "\(weatherLocationModeRaw)-\(lat)-\(lon)"
+            "\(weatherLocationModeRaw)-\(lat)-\(lon)-\(routeLibrary.activeRoute?.id ?? "no-route")"
     }
 
     private var locationHeader: some View {
@@ -543,7 +543,8 @@ struct WeatherView: View {
             hours: todayHours,
             window: window,
             route: route,
-            retrievedAt: forecast.current.fetchedAt
+            retrievedAt: forecast.current.fetchedAt,
+            samplingPoints: forecast.samplingPointCount
         )
     }
 
@@ -819,13 +820,15 @@ struct WeatherView: View {
         errorMessage = nil
 
         do {
-            forecast =
-                try await
-                FieldWeatherService
-                    .shared
-                    .forecast(
-                        at: location
-                    )
+            if shouldShowRouteWindow,
+               let route = routeLibrary.activeRoute,
+               route.coordinates.count > 1 {
+                forecast = try await FieldWeatherService.shared
+                    .forecastAlongRoute(route)
+            } else {
+                forecast = try await FieldWeatherService.shared
+                    .forecast(at: location)
+            }
         } catch {
             forecast = nil
             errorMessage =
