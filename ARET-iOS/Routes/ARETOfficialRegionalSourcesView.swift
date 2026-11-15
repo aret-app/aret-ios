@@ -16,6 +16,16 @@ struct ARETOfficialRegionalSourcesView: View {
 
     private let sources: [Source] = [
         Source(
+            id: "cai-apuane-sentieri-2025",
+            region: .apuane,
+            title: "Sentieri CAI Toscana — elenco 2025",
+            detail: "Registro CAI con riferimenti ai sentieri numerati e alle ferrate, inclusi Procinto 115A e Monte Forato 110A.",
+            link: URL(
+                string: "https://organizzazione.cai.it/gr-toscana/wp-content/uploads/sites/66/2025/10/Sentieri-CAI-ufficiale-21-10-2025.pdf"
+            )!,
+            warning: "Il PDF elenca percorsi e gradi, ma non è una traccia GPS e non sostituisce gli aggiornamenti sulle chiusure."
+        ),
+        Source(
             id: "parco-appennino-paths",
             region: .appennino,
             title: "Rete sentieristica del Parco",
