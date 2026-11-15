@@ -46,7 +46,6 @@ struct WeatherView: View {
                             spacing: 22
                         ) {
                             locationHeader
-                            currentConditions(forecast)
 
                             if shouldShowRouteWindow,
                                let route = routeLibrary.activeRoute {
@@ -57,6 +56,8 @@ struct WeatherView: View {
                             } else {
                                 localWeatherWindowSection(forecast)
                             }
+
+                            currentConditions(forecast)
 
                             hourlyForecast(
                                 Array(
