@@ -1,156 +1,124 @@
-# ARET
+# ARET — guida al progetto
 
-**Every line. One map.**
+**Every line. One map.** 🏔️
 
-ARET is an Apple-first mountain companion for hiking, climbing and alpinism.
+ARET è un'app nativa per iPhone e Apple Watch dedicata alla montagna. La
+visione è accompagnare l'utente dalla prima escursione fino ad arrampicata
+e alpinismo, mantenendo l'esperienza semplice. **La fase attuale è ARET
+Hiking**, con una beta geografica concentrata su **Alpi Apuane e Appennino
+tosco-emiliano**.
 
-## Hiking-first roadmap
+Questa è una **beta in sviluppo**, non un prodotto pubblico collaudato:
+la presenza di codice nel repository **non equivale a una build Xcode
+verificata sul dispositivo**.
 
-**The immediate product is ARET Hiking:** discover a trail, check the
-real route map/elevation profile, inspect weather, and start recording
-with as few steps as possible. Core hiking features are planned to
-remain free and usable without creating an account.
+## Da dove cominciare (anche per Claude / altri assistenti AI)
 
-See [Hiking roadmap and field-test criteria](docs/HIKING_PLAN.md).
+| Documento | A cosa serve |
+| --- | --- |
+| [Panoramica del prodotto e stato](docs/PRODUCT_AND_STATUS.md) | Che cos'è ARET, cosa funziona nel codice, cosa manca |
+| [Architettura e mappa dei file](docs/ARCHITECTURE.md) | Target, servizi, flussi dati, componenti iOS/Watch |
+| [Scoperta vette e vie nelle aree pilota](docs/REGIONAL_DISCOVERY.md) | Geografia, query OSM, metadati e limiti dei percorsi |
+| [Meteo, dati, licenze e sicurezza](docs/DATA_SOURCES_AND_SAFETY.md) | Open-Meteo, Overpass, OpenFreeMap, DEM, responsabilità |
+| [Setup e collaborazione](docs/DEVELOPMENT.md) | Come compilare e lavorare in due con branch/PR |
+| [Piano di test](docs/QA_SCENARIOS.md) | Scenario Procinto, Pisanino, Cusna e test sul campo |
+| [Roadmap tecnica](docs/HIKING_PLAN.md) | Prossimi obiettivi e criteri prima di un rilascio |
+| [CLAUDE.md](CLAUDE.md) | Regole contestuali per Claude Code / altri agenti |
+| [AGENTS.md](AGENTS.md) | Regole condivise tra assistenti di coding |
 
-This beta currently uses **Apple MapKit**. A genuinely custom
-OpenStreetMap / MapLibre topographic layer and downloadable offline
-maps are planned, **not yet implemented**.
+## Esperienza utente
 
-## Hiking weather and trail downloads
+**Esplora** → mappa, posizione, selezione percorso, registrazione GPS, SOS.
+Due motori alternativi: **MapKit** e **MapLibre / OpenFreeMap Liberty**
+nella modalità *ARET Sentieri (beta)*.
 
-ARET now processes hourly daylight, visibility, freezing-level height and
-pressure-level wind data in addition to precipitation/ground-level gusts.
-The itinerary and Weather screens present a **conservative, explainable**
-assessment and forecast windows; this is *not* a mountaineering safety
-certification or an authoritative go/no-go order.
+**Itinerari** → scorciatoie di vette, filtro geografico (entrambe/Apuane/
+Appennino), catalogo di cime `natural=peak` da OpenStreetMap, ricerca
+delle route relations e dei segmenti di ferrata effettivamente mappati.
+Schede di salita curate e corredate di fonte per **Procinto e Pisanino**.
+Importazione ed esportazione **GPX**, libreria percorsi personali.
 
-Discovered public hiking itineraries with valid geometries can be exported
-as GPX locally via the share sheet. Saving/exporting a GPX **does not**
-download the underlying terrain/map imagery. Full OpenStreetMap-based
-hiking layers and offline map-region downloads are planned for V0.3,
-subject to tile-provider permissions and data-quality validation.
+**Attività** → cronologia GPS, statistiche e riutilizzo delle attività
+come itinerario.
 
-See [Hiking roadmap](docs/HIKING_PLAN.md) for the staged plan and field tests.
+**Meteo** → Open-Meteo, previsioni orarie/giornaliere, finestra di salita,
+indicazioni prudenti e spiegabili, zero termico, visibilità, vento su
+livelli atmosferici e raffiche; lettura fino a tre posizioni del percorso,
+quando disponibili.
 
-## Field Test 0.1
+**Profilo** → privacy e preferenze di tracciamento.
 
-The first field build is intentionally narrow:
+**Apple Watch** → workout HealthKit, metriche, mini-traccia selezionata,
+alert fuori percorso, SOS e tentativo di avvio automatico registrazione
+iPhone tramite workout mirroring. **Test end-to-end su hardware necessari**.
 
-- 3D terrain map and live user location with a dedicated recenter control
-- explicit route selection: no route is shown until the user chooses it
-- built-in ARET route catalog plus optional GPX import
-- off-route distance warning only during an active recording
-- dense navigation-grade GPS recording
-- persistent activity history with full statistics
-- optional "save as route to repeat" flow after every activity
-- Apple Watch hiking workout
-- HealthKit heart-rate and distance on Watch
-- Watch-to-iPhone workout session mirroring
-- lightweight field weather
-- emergency screen with coordinates, altitude and GPS accuracy
-- architecture ready for offline maps, route features and Strava sync
+## Copertura geografica della beta
 
-## Repository layout
+- **Alpi Apuane:** dal settore Pisanino/Pizzo d'Uccello alle Panie,
+  Corchia, Procinto e Matanna.
+- **Appennino tosco-emiliano:** crinale e massicci di riferimento come
+  Cusna, Prado, Alpe di Succiso, Marmagna, Orsaro, Giovo, Rondinaio,
+  Cimone e Corno alle Scale.
 
-```
-Aret/
-├── ARET-Core/
-│   ├── GPX/
-│   ├── Models/
-│   └── Navigation/
-├── ARET-iOS/
-│   ├── App/
-│   ├── Explore/
-│   ├── Navigation/
-│   ├── Safety/
-│   ├── Weather/
-│   └── Workout/
-└── ARET-Watch/
-    ├── App/
-    └── Workout/
-```
+**Attenzione:** il catalogo *nomi delle cime* non è un database di vie
+complete. Le query live restituiscono soltanto ciò che è mappato su OSM;
+molte cime possono non avere alcuna traccia verificabile. Un segmento
+di ferrata NON è una via completa e non va usato per navigare. Le due
+aree sono delimitate nel codice da rettangoli geografici di prototipo,
+non dai confini amministrativi dei parchi.
 
-## Current development branch
+## Installazione rapida
 
-`feature/field-test-0.1`
-
-## Quick start on Mac
-
-Requirements:
-
-- recent Xcode
-- iPhone running iOS 18+
-- Apple Watch running watchOS 11+
-- the same Apple Account signed into Xcode / devices
-
-Clone:
+Requisiti: macOS con Xcode recente, [XcodeGen](https://github.com/yonaskolb/XcodeGen),
+iPhone iOS 18+, Watch watchOS 11+ per test reali. Il progetto è generato
+da **`project.yml`**, non modificare manualmente un `.xcodeproj` generato.
 
 ```bash
 git clone https://github.com/lorenzopieri99/Aret.git
 cd Aret
-git checkout feature/field-test-0.1
-```
-
-Generate the Xcode project with XcodeGen:
-
-```bash
+git fetch origin
+git switch feature/field-test-0.1
 brew install xcodegen
 xcodegen generate
 open ARET.xcodeproj
 ```
 
 In Xcode:
+1. Assegna il tuo **Development Team** nei target ARET, ARETWatch e
+   ARETLiveActivity (Signing & Capabilities).
+2. Attendi la risoluzione del package Swift **MapLibre**.
+3. Scegli lo scheme `ARET` e il dispositivo iPhone, poi `⌘B` e `⌘R`.
+4. Per Watch, scegli `ARETWatch` e il dispositivo abbinato.
+5. Accetta i permessi Posizione/Health quando richiesti.
 
-1. Open `ARET.xcodeproj`, press **Command–1**, and select the blue **ARET** project icon in the Project navigator.
-2. In the project editor sidebar, select **ARETWatch** under **TARGETS** (not under **PROJECT**). If the sidebar is hidden, expand it with the button at the top left of the project editor.
-3. Open **Signing & Capabilities**, select **All**, keep **Automatically manage signing** enabled, and choose your Development Team from **Team**.
-4. If the team is missing, open **Xcode → Settings → Accounts**, add your Apple Account, then return to the target and select the team.
-5. Repeat for the **ARET** target, selecting the same team. The repository deliberately does not hard-code a personal `DEVELOPMENT_TEAM`.
-6. Connect/unlock the iPhone and its paired Apple Watch. In the toolbar, choose the **ARET** scheme and your physical iPhone, then use **Product → Build** (**Command–B**) and **Product → Run** (**Command–R**).
-7. To run the Watch app directly, choose the **ARETWatch** scheme and your paired physical Apple Watch, then press **Command–R**.
-8. Accept Location and Health permissions when requested.
+Non sono inclusi database cloud, credenziali Supabase, account utente o
+sincronizzazione cloud dei GPX. Le attività restano locali (i servizi
+mappe/meteo inviano comunque normali richieste HTTPS ai provider).
 
-After pulling source updates, regenerate with `xcodegen generate` only if the project definition changed or the project is missing. Regeneration can reset team selections made in Xcode; select the team again on both targets afterward.
+## Lavorare in due
 
-The Watch workout and HealthKit behavior must be tested on physical Apple devices.
+Leggete per prima cosa [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+Per nuove funzioni usate un **branch dedicato + Pull Request**.
+Non fate modificare allo stesso tempo a due AI il medesimo file senza
+coordinamento: in particolare `RoutePlanningView.swift`,
+`OnlineRouteSearchService.swift`, `FieldWeatherService.swift` e
+`project.yml` hanno effetti trasversali. Il ramo storico
+`feature/field-test-0.1` contiene gli aggiornamenti di prototipazione
+e non deve essere considerato automaticamente equivalente a `main`.
 
-## Saturday field-test flow
+## Limiti importanti
 
-1. Open ARET on iPhone.
-2. Open **Percorsi** and choose the field-test route.
-3. Return to **Esplora** and check the orange reference route.
-4. Start the hike from ARET on Apple Watch.
-5. Confirm heart rate, elapsed time and distance update on Watch.
-6. Check that starting the Watch workout automatically starts the
-   mirrored iPhone recording. If not, report it as a field-test bug.
-7. Put the iPhone in your pocket and verify background tracking.
-8. Intentionally move a safe distance away from the GPX to test the reference-route warning.
-9. Open the SOS panel and verify coordinates/altitude/accuracy.
-10. End the Watch workout and confirm it appears in Apple Health/Fitness.
+- **Niente carte topografiche offline complete ancora.** Esiste una base
+  MapLibre vettoriale online; curve di livello, hillshade e pacchetti
+  offline regionali restano da sviluppare.
+- **Ricerca OSM best effort.** Nessuna promessa di tutte le vie/cime,
+  difficoltà certa o tracce necessariamente dirette alla vetta.
+- **Meteo non certifica la sicurezza.** Le condizioni reali di neve,
+  ghiaccio, valanghe, caduta sassi e percorribilità richiedono fonti
+  e competenze ulteriori.
+- **La build non è certificata finché non passa Xcode e i test sul campo.**
+- **Provider pubblici:** Overpass, Open-Meteo e OpenFreeMap hanno limiti
+  di utilizzo; una distribuzione commerciale richiede una verifica
+  contrattuale e spesso un'infrastruttura cache dedicata.
 
-## Important field-test limitations
-
-- This build is not a safety-certified navigation device.
-- The GPX line is a reference route, not a guarantee that terrain is safe or passable.
-- Weather in 0.1 uses a lightweight field-test provider to avoid making WeatherKit entitlement/signing a blocker. Production weather remains provider-swappable.
-- Offline terrain downloads are not in this commit yet.
-- Strava upload is not in this commit yet.
-- Climbing pitches, bolts, anchors and community editing are represented in the domain model but not exposed in UI yet.
-
-## Product principles
-
-1. The map is the home.
-2. A reference route is guidance, never a guarantee of safety.
-3. Every important mountain datum should eventually carry source, date and confidence.
-4. Offline operation is a core requirement.
-5. Apple Watch is a first-class interface, not an accessory.
-
-## Next technical steps
-
-1. Compile and fix any device-specific signing / watch target issues on the actual Mac.
-2. Add offline terrain packages.
-3. Add route feature UI for pitch, bolt, anchor, crux and rappel.
-4. Add WeatherKit production provider.
-5. Add Strava OAuth and activity upload.
-6. Add Supabase + PostGIS after the field core is validated.
+Consulta la documentazione collegata prima di ampliare l'app.
