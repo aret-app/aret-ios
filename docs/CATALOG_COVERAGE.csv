@@ -43,7 +43,7 @@
 "appennino","Monte Cimone","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
 "appennino","Corno alle Scale","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
 "appennino","Monte Libro Aperto","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
-"appennino","Monte Spigolino","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
+"appennino","Monte Spigolino","appennino-spigolino-baita-sole","no","source_linked_text_only","verify_source_current_access_and_full_route_geometry"
 "appennino","Monte Gennaio","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
 "appennino","Monte Sillano","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
 "appennino","Monte Romecchio","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
