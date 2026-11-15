@@ -37,7 +37,7 @@
 "appennino","Monte Prampa","appennino-cisa-prampa","no","source_linked_text_only","verify_source_current_access_and_full_route_geometry"
 "appennino","Alpe di Vallestrina","appennino-vallestrina-passone","no","source_linked_text_only","verify_source_current_access_and_full_route_geometry"
 "appennino","Monte Ventasso","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
-"appennino","Monte la Nuda","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
+"appennino","Monte la Nuda","appennino-la-nuda-pranda","no","source_linked_text_only","verify_source_current_access_and_full_route_geometry"
 "appennino","Monte Giovo","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
 "appennino","Monte Rondinaio","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
 "appennino","Monte Cimone","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
