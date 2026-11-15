@@ -28,7 +28,10 @@ struct RoutePlannerSearchView: View {
     @State private var onlineError: String?
 
     private var ascentGuides: [MountainAscentGuide] {
-        MountainAscentLibrary.results(for: searchText)
+        // Curated beta guides currently cover Procinto and Pisanino:
+        // both are Apuane, never show them in the Appennino-only filter.
+        guard discoveryScope.regions.contains(.apuane) else { return [] }
+        return MountainAscentLibrary.results(for: searchText)
     }
 
     private var suggestedSummits: [String] {
