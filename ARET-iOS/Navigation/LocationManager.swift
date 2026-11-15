@@ -59,15 +59,17 @@ final class LocationManager: NSObject, ObservableObject {
     }
 
     func startTracking(
-        name: String = "Attività ARET"
+        name: String = "Attività ARET",
+        sourceRouteID: String? = nil
     ) {
         guard !isTracking else { return }
         guard !journal.exists else {
             hasIncompleteRecording = true
             return
         }
+        let startedAt = Date()
         do {
-            try journal.begin(name: name, startedAt: Date())
+            try journal.begin(name: name, startedAt: startedAt, sourceRouteID: sourceRouteID)
         } catch {
             hasIncompleteRecording = journal.exists
             recordingError = "Impossibile avviare il salvataggio GPS: \(error.localizedDescription)"
@@ -82,7 +84,7 @@ final class LocationManager: NSObject, ObservableObject {
         maximumSpeedMPS = 0
         lastRecordedLocation = nil
         elevationReference = nil
-        trackingStartedAt = Date()
+        trackingStartedAt = startedAt
 
         isTracking = true
 
@@ -130,7 +132,7 @@ final class LocationManager: NSObject, ObservableObject {
             try flushPendingPoints()
             guard !recordedLocations.isEmpty else {
                 try journal.remove()
-                trackingStartedAt = nil
+                resetRecordingState()
                 return nil
             }
             let (header, _) = try journal.read()
@@ -151,10 +153,8 @@ final class LocationManager: NSObject, ObservableObject {
     }
 
     private func flushPendingPoints() throws {
-        while let point = pendingPoints.first {
-            try journal.append(point)
-            pendingPoints.removeFirst()
-        }
+        try journal.append(pendingPoints)
+        pendingPoints.removeAll(keepingCapacity: true)
     }
 
     func recoverRecording() -> RecordedActivity? {
@@ -173,7 +173,7 @@ final class LocationManager: NSObject, ObservableObject {
                 id: header.id, name: header.name, startedAt: header.startedAt, endedAt: endedAt,
                 points: points,
                 stats: .calculate(locations: locations, startedAt: header.startedAt, endedAt: endedAt),
-                gpxFilename: filename
+                sourceRouteID: header.sourceRouteID, gpxFilename: filename
             )
         } catch {
             recordingError = "Recupero non riuscito; file conservati: \(error.localizedDescription)"
@@ -181,20 +181,53 @@ final class LocationManager: NSObject, ObservableObject {
         }
     }
 
+    func archiveIncompleteRecording() {
+        guard !isTracking else { return }
+        do {
+            // Pending points must not disappear when archiving after a write failure.
+            try flushPendingPoints()
+            try journal.archive()
+            resetRecordingState()
+        } catch {
+            recordingError = "Archiviazione non riuscita; registrazione conservata: \(error.localizedDescription)"
+        }
+    }
+
+    func eraseRecordingData() -> Bool {
+        guard !isTracking else {
+            recordingError = "Termina la registrazione prima di eliminare i dati."
+            return false
+        }
+        do {
+            try journal.eraseAll()
+            resetRecordingState()
+            return true
+        } catch {
+            recordingError = "Eliminazione registrazioni non riuscita: \(error.localizedDescription)"
+            return false
+        }
+    }
+
+    private func resetRecordingState() {
+        hasIncompleteRecording = false
+        pendingPoints.removeAll()
+        recordedLocations.removeAll()
+        trackingStartedAt = nil
+        lastRecordedLocation = nil
+        elevationReference = nil
+        distanceMeters = 0
+        positiveElevationMeters = 0
+        negativeElevationMeters = 0
+        currentSpeedMPS = 0
+        maximumSpeedMPS = 0
+        recordingError = nil
+    }
+
     // Called only after ActivityStore confirms the durable activity write.
     func confirmRecordingSaved() {
         do {
             try journal.remove()
-            hasIncompleteRecording = false
-            recordedLocations.removeAll()
-            trackingStartedAt = nil
-            lastRecordedLocation = nil
-            elevationReference = nil
-            distanceMeters = 0
-            positiveElevationMeters = 0
-            negativeElevationMeters = 0
-            currentSpeedMPS = 0
-            maximumSpeedMPS = 0
+            resetRecordingState()
         } catch {
             recordingError = "Attività salvata; pulizia registrazione da riprovare: \(error.localizedDescription)"
         }
@@ -259,11 +292,6 @@ final class LocationManager: NSObject, ObservableObject {
         }
 
         pendingPoints.append(RecordedTrackPoint(location: candidate))
-        do {
-            try flushPendingPoints()
-        } catch {
-            recordingError = "Salvataggio GPS sospeso; nuovo tentativo al prossimo punto: \(error.localizedDescription)"
-        }
         recordedLocations.append(candidate)
         lastRecordedLocation = candidate
 
@@ -361,6 +389,11 @@ extension LocationManager: CLLocationManagerDelegate {
             // instead of only the last one.
             for candidate in locations.sorted(by: { $0.timestamp < $1.timestamp }) {
                 acceptRecordedLocation(candidate)
+            }
+            do {
+                try flushPendingPoints()
+            } catch {
+                recordingError = "Salvataggio GPS sospeso; nuovo tentativo al prossimo aggiornamento: \(error.localizedDescription)"
             }
         }
     }

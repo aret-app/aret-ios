@@ -1061,7 +1061,8 @@ struct ExploreView: View {
 
         locationManager
             .startTracking(
-                name: activityName
+                name: activityName,
+                sourceRouteID: routeLibrary.activeRoute?.id
             )
     }
 
@@ -1082,10 +1083,10 @@ struct ExploreView: View {
             ) {
             if activityStore.add(activity) {
                 locationManager.confirmRecordingSaved()
+                completedActivity = activity
             } else {
                 locationManager.recordingError = "Attività non salvata. Registrazione conservata per il recupero."
             }
-            completedActivity = activity
         }
     }
 

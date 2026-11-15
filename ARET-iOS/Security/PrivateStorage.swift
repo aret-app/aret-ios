@@ -31,6 +31,10 @@ enum PrivateStorage {
         )
 
         try hardenExistingFile(url)
+        // Final GPX/index writes must reach the filesystem before journal cleanup.
+        let handle = try FileHandle(forWritingTo: url)
+        defer { try? handle.close() }
+        try handle.synchronize()
     }
 
     static func hardenExistingFile(_ url: URL) throws {
@@ -71,25 +75,17 @@ enum PrivateStorage {
         }
     }
 
-    static func deleteAllARETGPXFiles() {
+    static func deleteAllARETGPXFiles() throws {
         let documents = FileManager.default.urls(
-            for: .documentDirectory,
-            in: .userDomainMask
+            for: .documentDirectory, in: .userDomainMask
         )[0]
-
-        guard
-            let files = try? FileManager.default.contentsOfDirectory(
-                at: documents,
-                includingPropertiesForKeys: nil
-            )
-        else {
-            return
-        }
-
+        let files = try FileManager.default.contentsOfDirectory(
+            at: documents, includingPropertiesForKeys: nil
+        )
         for url in files where
             url.lastPathComponent.hasPrefix("ARET_") &&
             url.pathExtension.lowercased() == "gpx" {
-            try? FileManager.default.removeItem(at: url)
+            try FileManager.default.removeItem(at: url)
         }
     }
 }

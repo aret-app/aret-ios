@@ -24,6 +24,8 @@ struct MainTabView: View {
     @EnvironmentObject private var watchRouteSyncManager:
         WatchRouteSyncManager
 
+    @State private var showArchiveConfirmation = false
+
     @State private var selectedTab:
         ARETTab = .map
 
@@ -107,10 +109,22 @@ struct MainTabView: View {
                             }
                         }
                     }
+                    Button("Conserva per dopo e libera la registrazione") {
+                        showArchiveConfirmation = true
+                    }
+                    .font(.caption)
                 }
                 .padding()
                 .background(.regularMaterial)
             }
+        }
+        .confirmationDialog("Archiviare la registrazione incompleta?", isPresented: $showArchiveConfirmation) {
+            Button("Archivia e consenti nuove registrazioni") {
+                locationManager.archiveIncompleteRecording()
+            }
+            Button("Annulla", role: .cancel) {}
+        } message: {
+            Text("I file originali saranno conservati sul dispositivo. Il recupero dall’archivio richiede assistenza tecnica; puoi prima riprovare il recupero qui.")
         }
         .alert("Registrazione GPS", isPresented: Binding(
             get: { locationManager.recordingError != nil },
@@ -182,7 +196,8 @@ struct MainTabView: View {
 
             locationManager
                 .startTracking(
-                    name: watchTrackingName
+                    name: watchTrackingName,
+                    sourceRouteID: watchSourceRouteID
                 )
 
             watchStartedPhoneTracking =
