@@ -28,8 +28,12 @@ enum WeatherWindowEngine {
         routeKind: RouteKind
     ) -> WeatherWindow {
         let daylightHours = hours.filter {
+            if let isDaylight = $0.isDaylight {
+                return isDaylight
+            }
+            // Fallback when the weather provider has no daylight metadata.
             guard let hour = $0.hour else { return false }
-            return hour >= 5 && hour <= 20
+            return hour >= 6 && hour <= 19
         }
 
         guard !daylightHours.isEmpty else {
@@ -103,20 +107,24 @@ enum WeatherWindowEngine {
             )
         }
 
-        let bestSingle = acceptable.max { $0.score < $1.score }
+        // A single isolated hour does not constitute a useful hiking window.
+        // Do not show a suggested departure time when none was found.
+        let mostRelevant = acceptable
+            .sorted(by: { $0.score > $1.score })
+            .prefix(4)
+
+        let explanation = summarizedReasons(
+            from: mostRelevant.flatMap(\.reasons)
+        )
 
         return WeatherWindow(
             quality: .noClearWindow,
-            startTime: bestSingle?.hour.timeLabel,
-            endTime: bestSingle.flatMap {
-                endLabel(for: $0.hour.timeLabel)
-            },
-            score: bestSingle?.score ?? 0,
-            reasons: summarizedReasons(
-                from: bestSingle?.reasons ?? [
-                    "Le condizioni cambiano troppo durante la giornata."
-                ]
-            )
+            startTime: nil,
+            endTime: nil,
+            score: 0,
+            reasons: explanation.isEmpty
+                ? ["Non risultano almeno due ore di condizioni continuativamente favorevoli."]
+                : explanation
         )
     }
 
@@ -191,6 +199,16 @@ enum WeatherWindowEngine {
             score -= 8
         }
 
+        if let windAloft = hour.windAloftKPH {
+            if windAloft >= 70 {
+                score -= 45
+                reasons.append("vento molto forte sui livelli in quota")
+            } else if windAloft >= 50 {
+                score -= 23
+                reasons.append("vento sostenuto sui livelli in quota")
+            }
+        }
+
         if let visibility = hour.visibilityMeters {
             if visibility < 2_000 {
                 score -= 35
@@ -199,6 +217,12 @@ enum WeatherWindowEngine {
                 score -= 15
                 reasons.append("visibilità ridotta")
             }
+        }
+
+        if (71...77).contains(hour.weatherCode) ||
+            (85...86).contains(hour.weatherCode) {
+            score -= 25
+            reasons.append("precipitazioni nevose possibili")
         }
 
         let clamped = max(0, min(100, score))
