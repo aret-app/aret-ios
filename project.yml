@@ -1,0 +1,133 @@
+name: ARET
+
+options:
+  bundleIdPrefix: com.lorenzopieri99
+  deploymentTarget:
+    iOS: "18.0"
+    watchOS: "11.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    CODE_SIGN_STYLE: Automatic
+
+packages:
+  MapLibre:
+    url: https://github.com/maplibre/maplibre-gl-native-distribution
+    from: 6.31.0
+
+targets:
+  ARET:
+    type: application
+    platform: iOS
+    sources:
+      - path: ARET-iOS
+      - path: ARET-Core
+      - path: ARET-Shared
+      - path: ARET-SharedUI
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lorenzopieri99.aret
+    info:
+      path: ARET-iOS/Info.plist
+      properties:
+        CFBundleDisplayName: ARET
+        NSLocationWhenInUseUsageDescription: "ARET uses your location to show your position and record your mountain activity."
+        NSLocationAlwaysAndWhenInUseUsageDescription: "ARET can keep recording your active route while the app is in the background."
+        NSHealthShareUsageDescription: "ARET connects to your Apple Watch workout to show your active mountain session."
+        NSHealthUpdateUsageDescription: "ARET connects your recorded mountain workout with Apple Health."
+        UIBackgroundModes:
+          - location
+        NSSupportsLiveActivities: true
+        UILaunchScreen: {}
+    entitlements:
+      path: ARET-iOS/ARET.entitlements
+      properties:
+        com.apple.developer.healthkit: true
+    dependencies:
+      - package: MapLibre
+        product: MapLibre
+      - target: ARETWatch
+        embed: true
+      - target: ARETLiveActivity
+        embed: true
+
+  ARETLiveActivity:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: ARET-LiveActivity
+      - path: ARET-Shared
+      - path: ARET-SharedUI
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lorenzopieri99.aret.liveactivity
+        APPLICATION_EXTENSION_API_ONLY: YES
+        SKIP_INSTALL: YES
+    info:
+      path: ARET-LiveActivity/Info.plist
+      properties:
+        CFBundleDisplayName: ARET Live
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+
+  ARETWatch:
+    type: application
+    platform: watchOS
+    sources:
+      - path: ARET-Watch
+      - path: ARET-Core
+      - path: ARET-SharedUI
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lorenzopieri99.aret.watch
+    info:
+      path: ARET-Watch/Info.plist
+      properties:
+        CFBundleDisplayName: ARET
+        WKCompanionAppBundleIdentifier: com.lorenzopieri99.aret
+        WKApplication: true
+        WKBackgroundModes:
+          - workout-processing
+        NSLocationWhenInUseUsageDescription: "ARET uses your Watch location during outdoor activities to show altitude, GPS accuracy and elevation gain."
+        NSHealthShareUsageDescription: "ARET reads workout metrics such as heart rate to show them during your activity."
+        NSHealthUpdateUsageDescription: "ARET saves your hiking and climbing workouts to Apple Health."
+    entitlements:
+      path: ARET-Watch/ARETWatch.entitlements
+      properties:
+        com.apple.developer.healthkit: true
+
+
+schemes:
+  ARET:
+    build:
+      targets:
+        ARET: all
+        ARETWatch: all
+        ARETLiveActivity: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
+
+  ARETWatch:
+    build:
+      targets:
+        ARETWatch: all
+    run:
+      config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release

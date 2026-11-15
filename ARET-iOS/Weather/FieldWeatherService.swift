@@ -1,0 +1,605 @@
+import Foundation
+import CoreLocation
+
+struct WeatherSnapshot: Sendable {
+    let temperatureCelsius: Double
+    let precipitationMM: Double
+    let windSpeedKPH: Double
+    let windGustKPH: Double
+    let weatherCode: Int
+    let fetchedAt: Date
+
+    var symbolName: String {
+        WeatherCodePresentation.symbolName(for: weatherCode)
+    }
+
+    var conditionName: String {
+        WeatherCodePresentation.name(for: weatherCode)
+    }
+}
+
+struct HourlyWeather: Identifiable, Sendable {
+    let id: String
+    let rawTime: String
+    let timeLabel: String
+    let temperatureCelsius: Double
+    let precipitationProbability: Int
+    let precipitationMM: Double
+    let windSpeedKPH: Double
+    let windGustKPH: Double
+    let weatherCode: Int
+    let visibilityMeters: Double?
+    let freezingLevelMeters: Double?
+    let isDaylight: Bool?
+    /// Wind from the pressure level nearest the route altitude, not surface gusts.
+    let windAloftKPH: Double?
+    let windAloftAltitudeMeters: Double?
+
+    var symbolName: String {
+        WeatherCodePresentation.symbolName(for: weatherCode)
+    }
+
+    var dateKey: String {
+        String(rawTime.prefix(10))
+    }
+
+    var hour: Int? {
+        guard rawTime.count >= 13 else { return nil }
+        let start = rawTime.index(rawTime.startIndex, offsetBy: 11)
+        let end = rawTime.index(start, offsetBy: 2)
+        return Int(rawTime[start..<end])
+    }
+}
+
+struct DailyWeather: Identifiable, Sendable {
+    let id: String
+    let rawDate: String
+    let dateLabel: String
+    let temperatureMaxCelsius: Double
+    let temperatureMinCelsius: Double
+    let precipitationProbabilityMax: Int
+    let windSpeedMaxKPH: Double
+    let windGustMaxKPH: Double
+    let weatherCode: Int
+
+    var symbolName: String {
+        WeatherCodePresentation.symbolName(for: weatherCode)
+    }
+
+    var conditionName: String {
+        WeatherCodePresentation.name(for: weatherCode)
+    }
+}
+
+struct WeatherForecast: Sendable {
+    let current: WeatherSnapshot
+    let hourly: [HourlyWeather]
+    let daily: [DailyWeather]
+    let latitude: Double
+    let longitude: Double
+    let timezone: String
+    /// Number of distinct route positions actually sampled.
+    var samplingPointCount: Int = 1
+}
+
+enum WeatherCodePresentation {
+    static func symbolName(for code: Int) -> String {
+        switch code {
+        case 0: return "sun.max.fill"
+        case 1...3: return "cloud.sun.fill"
+        case 45, 48: return "cloud.fog.fill"
+        case 51...67, 80...82: return "cloud.rain.fill"
+        case 71...77, 85, 86: return "cloud.snow.fill"
+        case 95...99: return "cloud.bolt.rain.fill"
+        default: return "cloud.fill"
+        }
+    }
+
+    static func name(for code: Int) -> String {
+        switch code {
+        case 0: return "Sereno"
+        case 1: return "Prevalentemente sereno"
+        case 2: return "Parzialmente nuvoloso"
+        case 3: return "Coperto"
+        case 45, 48: return "Nebbia"
+        case 51...57: return "Pioviggine"
+        case 61...67: return "Pioggia"
+        case 71...77: return "Neve"
+        case 80...82: return "Rovesci"
+        case 85, 86: return "Rovesci di neve"
+        case 95...99: return "Temporali"
+        default: return "Variabile"
+        }
+    }
+}
+
+actor FieldWeatherService {
+    static let shared = FieldWeatherService()
+
+    private let session: URLSession = {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        configuration.urlCache = nil
+        configuration.httpCookieStorage = nil
+        return URLSession(configuration: configuration)
+    }()
+
+    func currentWeather(at location: CLLocation) async throws -> WeatherSnapshot {
+        let result = try await forecast(at: location)
+        return result.current
+    }
+
+    /// Conservatively merges weather forecasts at up to three distinct
+    /// positions along an itinerary: start, midpoint and highest GPS/DEM point
+    /// (or end where no altitude is recorded). This is still model data,
+    /// not ground-truth for exposed ridges or narrow gullies.
+    func forecastAlongRoute(
+        _ route: RouteLibraryItem
+    ) async throws -> WeatherForecast {
+        let points = route.coordinates
+        guard points.count >= 2 else {
+            throw URLError(.badURL)
+        }
+
+        let highest = points.enumerated()
+            .filter { $0.element.altitude != nil }
+            .max {
+                ($0.element.altitude ?? -.infinity) <
+                    ($1.element.altitude ?? -.infinity)
+            }?.offset ?? (points.count - 1)
+
+        let candidateIndices = [highest, 0, points.count / 2]
+        var samples: [CLLocation] = []
+
+        for index in candidateIndices {
+            let point = points[index]
+
+            let location: CLLocation
+            if let altitude = point.altitude,
+               altitude.isFinite {
+                location = CLLocation(
+                    coordinate: point.clLocationCoordinate,
+                    altitude: altitude,
+                    horizontalAccuracy: 1,
+                    verticalAccuracy: 1,
+                    timestamp: Date()
+                )
+            } else {
+                location = CLLocation(
+                    latitude: point.latitude,
+                    longitude: point.longitude
+                )
+            }
+
+            if samples.allSatisfy({
+                $0.distance(from: location) > 350
+            }) {
+                samples.append(location)
+            }
+        }
+
+        guard let first = samples.first else {
+            throw URLError(.badURL)
+        }
+
+        // The highest point gets priority. Other points enrich the forecast
+        // but their failure must not hide a usable primary forecast.
+        var forecasts = [try await forecast(at: first)]
+        for sample in samples.dropFirst() {
+            if let next = try? await forecast(at: sample) {
+                forecasts.append(next)
+            }
+        }
+
+        guard forecasts.count > 1 else {
+            return forecasts[0]
+        }
+
+        let firstForecast = forecasts[0]
+        let indexes = forecasts.dropFirst().map { forecast in
+            Dictionary(
+                uniqueKeysWithValues: forecast.hourly.map {
+                    ($0.rawTime, $0)
+                }
+            )
+        }
+
+        let mergedHours = firstForecast.hourly.map { reference in
+            let values = [reference] + indexes.compactMap {
+                $0[reference.rawTime]
+            }
+
+            let levels = values.compactMap { value -> (
+                wind: Double,
+                altitude: Double
+            )? in
+                guard
+                    let wind = value.windAloftKPH,
+                    let altitude = value.windAloftAltitudeMeters
+                else { return nil }
+                return (wind, altitude)
+            }
+            let highestWind = levels.max { $0.wind < $1.wind }
+
+            let daylight = values.compactMap(\.isDaylight)
+
+            return HourlyWeather(
+                id: reference.id,
+                rawTime: reference.rawTime,
+                timeLabel: reference.timeLabel,
+                temperatureCelsius:
+                    values.map(\.temperatureCelsius).min() ??
+                    reference.temperatureCelsius,
+                precipitationProbability:
+                    values.map(\.precipitationProbability).max() ??
+                    reference.precipitationProbability,
+                precipitationMM:
+                    values.map(\.precipitationMM).max() ??
+                    reference.precipitationMM,
+                windSpeedKPH:
+                    values.map(\.windSpeedKPH).max() ??
+                    reference.windSpeedKPH,
+                windGustKPH:
+                    values.map(\.windGustKPH).max() ??
+                    reference.windGustKPH,
+                weatherCode:
+                    values.map(\.weatherCode).max {
+                        weatherSeverity($0) < weatherSeverity($1)
+                    } ?? reference.weatherCode,
+                visibilityMeters:
+                    values.compactMap(\.visibilityMeters).min(),
+                freezingLevelMeters:
+                    values.compactMap(\.freezingLevelMeters).min(),
+                isDaylight: daylight.isEmpty
+                    ? nil : daylight.allSatisfy { $0 },
+                windAloftKPH: highestWind?.wind,
+                windAloftAltitudeMeters: highestWind?.altitude
+            )
+        }
+
+        return WeatherForecast(
+            current: firstForecast.current,
+            hourly: mergedHours,
+            daily: firstForecast.daily,
+            latitude: firstForecast.latitude,
+            longitude: firstForecast.longitude,
+            timezone: firstForecast.timezone,
+            samplingPointCount: forecasts.count
+        )
+    }
+
+    private func weatherSeverity(_ code: Int) -> Int {
+        switch code {
+        case 95...99: return 100
+        case 71...77, 85...86: return 80
+        case 61...67, 80...82: return 70
+        case 45, 48: return 60
+        case 51...57: return 50
+        default: return code
+        }
+    }
+
+    func forecast(at location: CLLocation) async throws -> WeatherForecast {
+        var components = URLComponents(
+            string: "https://api.open-meteo.com/v1/forecast"
+        )!
+
+        var queryItems = [
+            URLQueryItem(
+                name: "latitude",
+                value: String(location.coordinate.latitude)
+            ),
+            URLQueryItem(
+                name: "longitude",
+                value: String(location.coordinate.longitude)
+            ),
+            URLQueryItem(
+                name: "current",
+                value: "temperature_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m"
+            ),
+            URLQueryItem(
+                name: "hourly",
+                value: "temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,visibility,freezing_level_height,is_day,wind_speed_850hPa,wind_speed_700hPa,geopotential_height_850hPa,geopotential_height_700hPa"
+            ),
+            URLQueryItem(
+                name: "daily",
+                value: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max"
+            ),
+            URLQueryItem(name: "forecast_days", value: "16"),
+            URLQueryItem(name: "temperature_unit", value: "celsius"),
+            URLQueryItem(name: "wind_speed_unit", value: "kmh"),
+            URLQueryItem(name: "precipitation_unit", value: "mm"),
+            URLQueryItem(name: "timezone", value: "auto")
+        ]
+
+        if location.verticalAccuracy >= 0,
+           abs(location.altitude) > 1 {
+            queryItems.insert(
+                URLQueryItem(
+                    name: "elevation",
+                    value: String(
+                        Int(location.altitude.rounded())
+                    )
+                ),
+                at: 2
+            )
+        }
+
+        components.queryItems = queryItems
+
+        guard let url = components.url else {
+            throw URLError(.badURL)
+        }
+
+        let (data, response) = try await session.data(from: url)
+
+        guard
+            let http = response as? HTTPURLResponse,
+            200..<300 ~= http.statusCode
+        else {
+            throw URLError(.badServerResponse)
+        }
+
+        let decoded = try JSONDecoder().decode(Response.self, from: data)
+
+        let current = WeatherSnapshot(
+            temperatureCelsius: decoded.current.temperature2m,
+            precipitationMM: decoded.current.precipitation,
+            windSpeedKPH: decoded.current.windSpeed10m,
+            windGustKPH: decoded.current.windGusts10m,
+            weatherCode: decoded.current.weatherCode,
+            fetchedAt: Date()
+        )
+
+        let currentHourPrefix = currentHourKey(
+            timezoneIdentifier: decoded.timezone
+        )
+
+        var hourly: [HourlyWeather] = []
+
+        let hourlyCount = [
+            decoded.hourly.time.count,
+            decoded.hourly.temperature2m.count,
+            decoded.hourly.precipitationProbability.count,
+            decoded.hourly.precipitation.count,
+            decoded.hourly.weatherCode.count,
+            decoded.hourly.windSpeed10m.count,
+            decoded.hourly.windGusts10m.count
+        ].min() ?? 0
+
+        for index in 0..<hourlyCount {
+            let rawTime = decoded.hourly.time[index]
+
+            if !currentHourPrefix.isEmpty, rawTime < currentHourPrefix {
+                continue
+            }
+
+            let windAloft = upperAirWind(
+                index: index,
+                hourly: decoded.hourly,
+                targetAltitude: location.verticalAccuracy >= 0 &&
+                    abs(location.altitude) > 1 ? location.altitude : nil
+            )
+
+            hourly.append(
+                HourlyWeather(
+                    id: rawTime,
+                    rawTime: rawTime,
+                    timeLabel: hourLabel(from: rawTime),
+                    temperatureCelsius: decoded.hourly.temperature2m[index],
+                    precipitationProbability: decoded.hourly.precipitationProbability[index],
+                    precipitationMM: decoded.hourly.precipitation[index],
+                    windSpeedKPH: decoded.hourly.windSpeed10m[index],
+                    windGustKPH: decoded.hourly.windGusts10m[index],
+                    weatherCode: decoded.hourly.weatherCode[index],
+                    visibilityMeters:
+                        decoded.hourly.visibility?[safe: index] ?? nil,
+                    freezingLevelMeters:
+                        decoded.hourly.freezingLevelHeight?[safe: index] ?? nil,
+                    isDaylight:
+                        (decoded.hourly.isDay?[safe: index]).map { $0 == 1 },
+                    windAloftKPH: windAloft?.speed,
+                    windAloftAltitudeMeters: windAloft?.height
+                )
+            )
+        }
+
+        var daily: [DailyWeather] = []
+
+        let dailyCount = [
+            decoded.daily.time.count,
+            decoded.daily.weatherCode.count,
+            decoded.daily.temperature2mMax.count,
+            decoded.daily.temperature2mMin.count,
+            decoded.daily.precipitationProbabilityMax.count,
+            decoded.daily.windSpeed10mMax.count,
+            decoded.daily.windGusts10mMax.count
+        ].min() ?? 0
+
+        for index in 0..<dailyCount {
+            let rawDate = decoded.daily.time[index]
+
+            daily.append(
+                DailyWeather(
+                    id: rawDate,
+                    rawDate: rawDate,
+                    dateLabel: dayLabel(from: rawDate, index: index),
+                    temperatureMaxCelsius: decoded.daily.temperature2mMax[index],
+                    temperatureMinCelsius: decoded.daily.temperature2mMin[index],
+                    precipitationProbabilityMax: decoded.daily.precipitationProbabilityMax[index],
+                    windSpeedMaxKPH: decoded.daily.windSpeed10mMax[index],
+                    windGustMaxKPH: decoded.daily.windGusts10mMax[index],
+                    weatherCode: decoded.daily.weatherCode[index]
+                )
+            )
+        }
+
+        return WeatherForecast(
+            current: current,
+            hourly: hourly,
+            daily: daily,
+            latitude: decoded.latitude,
+            longitude: decoded.longitude,
+            timezone: decoded.timezone
+        )
+    }
+
+    private func upperAirWind(
+        index: Int,
+        hourly: Response.Hourly,
+        targetAltitude: Double?
+    ) -> (speed: Double, height: Double)? {
+        var levels: [(speed: Double, height: Double)] = []
+
+        if let speed = hourly.windSpeed850hPa?[safe: index] ?? nil,
+           let height = hourly.geopotentialHeight850hPa?[safe: index] ?? nil,
+           speed.isFinite, height.isFinite {
+            levels.append((speed: speed, height: height))
+        }
+
+        if let speed = hourly.windSpeed700hPa?[safe: index] ?? nil,
+           let height = hourly.geopotentialHeight700hPa?[safe: index] ?? nil,
+           speed.isFinite, height.isFinite {
+            levels.append((speed: speed, height: height))
+        }
+
+        guard !levels.isEmpty else { return nil }
+
+        // This is a pressure-level proxy: terrain/crest effects and local
+        // gusts can be substantially different at the route location.
+        guard let targetAltitude else { return levels.first }
+
+        return levels.min {
+            abs($0.height - targetAltitude) <
+                abs($1.height - targetAltitude)
+        }
+    }
+
+    private func currentHourKey(
+        timezoneIdentifier: String
+    ) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.timeZone =
+            TimeZone(identifier: timezoneIdentifier) ??
+            .current
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:00"
+        return formatter.string(from: Date())
+    }
+
+    private func hourLabel(from raw: String) -> String {
+        guard raw.count >= 16 else { return raw }
+        let start = raw.index(raw.startIndex, offsetBy: 11)
+        let end = raw.index(start, offsetBy: 5)
+        return String(raw[start..<end])
+    }
+
+    private func dayLabel(
+        from raw: String,
+        index: Int
+    ) -> String {
+        if index == 0 { return "Oggi" }
+        if index == 1 { return "Domani" }
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+
+        guard let date = formatter.date(from: raw) else {
+            return raw
+        }
+
+        let output = DateFormatter()
+        output.locale = Locale(identifier: "it_IT")
+        output.dateFormat = "EEE d"
+        return output.string(from: date).capitalized
+    }
+}
+
+private extension FieldWeatherService {
+    struct Response: Decodable {
+        let latitude: Double
+        let longitude: Double
+        let timezone: String
+        let current: Current
+        let hourly: Hourly
+        let daily: Daily
+    }
+
+    struct Current: Decodable {
+        let temperature2m: Double
+        let precipitation: Double
+        let weatherCode: Int
+        let windSpeed10m: Double
+        let windGusts10m: Double
+
+        enum CodingKeys: String, CodingKey {
+            case temperature2m = "temperature_2m"
+            case precipitation
+            case weatherCode = "weather_code"
+            case windSpeed10m = "wind_speed_10m"
+            case windGusts10m = "wind_gusts_10m"
+        }
+    }
+
+    struct Hourly: Decodable {
+        let time: [String]
+        let temperature2m: [Double]
+        let precipitationProbability: [Int]
+        let precipitation: [Double]
+        let weatherCode: [Int]
+        let windSpeed10m: [Double]
+        let windGusts10m: [Double]
+        let visibility: [Double?]?
+        let freezingLevelHeight: [Double?]?
+        let isDay: [Int]?
+        let windSpeed850hPa: [Double?]?
+        let windSpeed700hPa: [Double?]?
+        let geopotentialHeight850hPa: [Double?]?
+        let geopotentialHeight700hPa: [Double?]?
+
+        enum CodingKeys: String, CodingKey {
+            case time
+            case temperature2m = "temperature_2m"
+            case precipitationProbability = "precipitation_probability"
+            case precipitation
+            case weatherCode = "weather_code"
+            case windSpeed10m = "wind_speed_10m"
+            case windGusts10m = "wind_gusts_10m"
+            case visibility
+            case freezingLevelHeight = "freezing_level_height"
+            case isDay = "is_day"
+            case windSpeed850hPa = "wind_speed_850hPa"
+            case windSpeed700hPa = "wind_speed_700hPa"
+            case geopotentialHeight850hPa = "geopotential_height_850hPa"
+            case geopotentialHeight700hPa = "geopotential_height_700hPa"
+        }
+    }
+
+    struct Daily: Decodable {
+        let time: [String]
+        let weatherCode: [Int]
+        let temperature2mMax: [Double]
+        let temperature2mMin: [Double]
+        let precipitationProbabilityMax: [Int]
+        let windSpeed10mMax: [Double]
+        let windGusts10mMax: [Double]
+
+        enum CodingKeys: String, CodingKey {
+            case time
+            case weatherCode = "weather_code"
+            case temperature2mMax = "temperature_2m_max"
+            case temperature2mMin = "temperature_2m_min"
+            case precipitationProbabilityMax = "precipitation_probability_max"
+            case windSpeed10mMax = "wind_speed_10m_max"
+            case windGusts10mMax = "wind_gusts_10m_max"
+        }
+    }
+}
+
+private extension Array {
+    subscript(safe index: Index) -> Element? {
+        indices.contains(index) ? self[index] : nil
+    }
+}
