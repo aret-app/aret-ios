@@ -38,8 +38,8 @@ enum ARETAdditionalAscentGuides {
             summit: "Monte Forato",
             title: "Ferrata Renato Salvatori — traversata del Forato",
             discipline: .ferrata,
-            documentedDifficulty: "EEA / tratti EE · CAI 110A (ferrata)"
-            itinerary: "Via attrezzata sul settore del Monte Forato descritta dal Parco delle Apuane, nel contesto di Foce di Petrosciana e delle due sommità collegate dall'arco naturale.",
+            documentedDifficulty: "EEA / tratti EE · CAI 110A (ferrata)",
+            itinerary: "Via attrezzata sul Monte Forato censita dal CAI come 110A. Il percorso parte dal settore del sentiero 110 e raggiunge la cresta meridionale: è distinto dall'anello escursionistico E.",
             caution: "È una ferrata: casco, imbrago, set omologato e capacità di progressione sono fondamentali. Non usare la qualifica storica di facile come valutazione attuale. Verificare chiusure, stato dei cavi e uscita.",
             sourceName: "CAI Toscana — elenco sentieri 2025, ferrata 110A",
             sourceURL: URL(string: "https://organizzazione.cai.it/gr-toscana/wp-content/uploads/sites/66/2025/10/Sentieri-CAI-ufficiale-21-10-2025.pdf")!,
