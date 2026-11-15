@@ -25,6 +25,7 @@ struct RoutePlannerSearchView: View {
     @State private var triggerSearchAfterTextChange = false
     @State private var onlineRoutes: [RouteLibraryItem] = []
     @State private var technicalSegments: [OSMTechnicalSegment] = []
+    @State private var nearbyPathSegments: [OSMTrailSegment] = []
     @State private var isSearchingOnline = false
     @State private var onlineError: String?
 
@@ -414,6 +415,39 @@ struct RoutePlannerSearchView: View {
                 }
             }
 
+            if !nearbyPathSegments.isEmpty {
+                Section {
+                    ForEach(
+                        Array(nearbyPathSegments.prefix(18))
+                    ) { path in
+                        RegionalTrailSegmentCard(segment: path)
+                            .listRowInsets(
+                                EdgeInsets(
+                                    top: 6,
+                                    leading: 12,
+                                    bottom: 6,
+                                    trailing: 12
+                                )
+                            )
+                            .listRowBackground(Color.clear)
+                    }
+
+                    if nearbyPathSegments.count > 18 {
+                        Text(
+                            "Visualizzati i primi 18 tratti tra \(nearbyPathSegments.count) risultati: non è un elenco esaustivo della rete sentieristica."
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+                } header: {
+                    Text("Tratti di sentieri mappati nelle vicinanze")
+                } footer: {
+                    Text(
+                        "Questi sono singoli way OSM con nome/ref e difficoltà quando riportate: non sono itinerari completi fino alla vetta. Un sentiero senza sac_scale non è automaticamente facile."
+                    )
+                }
+            }
+
             if let onlineError {
                 Section("Ricerca online") {
                     Text(onlineError)
@@ -437,6 +471,7 @@ struct RoutePlannerSearchView: View {
                localRoutes.isEmpty &&
                onlineRoutes.isEmpty &&
                technicalSegments.isEmpty &&
+               nearbyPathSegments.isEmpty &&
                ascentGuides.isEmpty &&
                !isSearchingOnline &&
                onlineError == nil {
@@ -476,6 +511,7 @@ struct RoutePlannerSearchView: View {
             activeSearchID = UUID()
             onlineRoutes = []
             technicalSegments = []
+            nearbyPathSegments = []
             onlineError = nil
 
             if selectedSummit?.name != newValue {
@@ -495,6 +531,7 @@ struct RoutePlannerSearchView: View {
             selectedSummit = nil
             onlineRoutes = []
             technicalSegments = []
+            nearbyPathSegments = []
             onlineError = nil
             visibleSummitCount = 35
             showSummitDirectory = false
@@ -611,6 +648,7 @@ struct RoutePlannerSearchView: View {
         onlineError = nil
         onlineRoutes = []
         technicalSegments = []
+        nearbyPathSegments = []
         let scope = discoveryScope
         let selected = selectedSummit
 
@@ -628,8 +666,11 @@ struct RoutePlannerSearchView: View {
 
             onlineRoutes = result.routes
             technicalSegments = result.technicalSegments
+            nearbyPathSegments = result.trailSegments
 
-            if onlineRoutes.isEmpty && technicalSegments.isEmpty {
+            if onlineRoutes.isEmpty &&
+               technicalSegments.isEmpty &&
+               nearbyPathSegments.isEmpty {
                 onlineError =
                     "Nessuna traccia OSM utilizzabile trovata in quest'area. Il catalogo delle vette NON garantisce la presenza delle vie di salita: consulta fonti ufficiali prima di partire."
             }
