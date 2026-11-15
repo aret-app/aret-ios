@@ -6,7 +6,8 @@ private enum MapDisplayStyle:
     String,
     CaseIterable,
     Identifiable {
-    case topographic = "Topo"
+    case topographic = "Topo Apple"
+    case aretTopo = "ARET Sentieri (beta)"
     case hybrid = "Ibrida"
     case satellite = "Satellite"
 
@@ -16,6 +17,8 @@ private enum MapDisplayStyle:
         switch self {
         case .topographic:
             return "map"
+        case .aretTopo:
+            return "point.topleft.down.to.point.bottomright.curvepath"
         case .hybrid:
             return "square.3.layers.3d"
         case .satellite:
@@ -60,6 +63,8 @@ struct ExploreView: View {
         RecordedActivity?
 
     @State private var didCenterOnFirstGPSFix = false
+    @State private var topoCenterRequest = 0
+    @State private var topoFitRequest = 0
 
     private var mapDisplayStyle:
         MapDisplayStyle {
@@ -71,7 +76,7 @@ struct ExploreView: View {
     private var selectedMapStyle:
         MapStyle {
         switch mapDisplayStyle {
-        case .topographic:
+        case .topographic, .aretTopo:
             return .standard(
                 elevation: .realistic,
                 emphasis: .muted,
@@ -124,7 +129,7 @@ struct ExploreView: View {
 
     var body: some View {
         ZStack {
-            map
+            mapLayer
 
             LinearGradient(
                 colors: [
@@ -215,6 +220,43 @@ struct ExploreView: View {
             }
 
             fitCameraToActiveRoute()
+        }
+    }
+
+    @ViewBuilder
+    private var mapLayer: some View {
+        if mapDisplayStyle == .aretTopo {
+            ARETTopoMapView(
+                routeID: routeLibrary.activeRoute?.id,
+                routeCoordinates: routeLibrary.activeRoute?.coordinates ?? [],
+                recordedCoordinates: locationManager.isTracking
+                    ? locationManager.recordedLocations.map(\.coordinate)
+                    : [],
+                userCoordinate: locationManager.location?.coordinate,
+                centerRequest: topoCenterRequest,
+                fitRequest: topoFitRequest
+            )
+            .overlay(alignment: .trailing) {
+                mapControls
+                    .padding(.trailing, 15)
+                    .offset(y: -30)
+            }
+            .overlay(alignment: .bottomLeading) {
+                Link(
+                    "© OpenStreetMap contributors · OpenFreeMap",
+                    destination: URL(string: "https://openfreemap.org")!
+                )
+                .font(.system(size: 9))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 9)
+                .padding(.vertical, 5)
+                .background(.black.opacity(0.65), in: Capsule())
+                .padding(.leading, 10)
+                .padding(.bottom, 205)
+            }
+            .ignoresSafeArea()
+        } else {
+            map
         }
     }
 
@@ -1058,6 +1100,11 @@ struct ExploreView: View {
             return
         }
 
+        if mapDisplayStyle == .aretTopo {
+            topoCenterRequest += 1
+            return
+        }
+
         let heading =
             location.course >= 0
             ? location.course
@@ -1102,6 +1149,11 @@ struct ExploreView: View {
     }
 
     private func fitCameraToActiveRoute() {
+        if mapDisplayStyle == .aretTopo {
+            topoFitRequest += 1
+            return
+        }
+
         let coordinates =
             activeRouteCoordinates
 
