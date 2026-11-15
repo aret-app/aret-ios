@@ -230,10 +230,12 @@ final class RouteLibraryStore: ObservableObject {
         return record.libraryItem
     }
 
-    func deleteAllPersonalRoutes() {
+    func deleteAllPersonalRoutes() throws {
+        if FileManager.default.fileExists(atPath: storeURL.path) {
+            try FileManager.default.removeItem(at: storeURL)
+        }
         savedRouteRecords.removeAll()
         activeRoute = nil
-        try? FileManager.default.removeItem(at: storeURL)
     }
 
     func deletePersonalRoute(_ route: RouteLibraryItem) {

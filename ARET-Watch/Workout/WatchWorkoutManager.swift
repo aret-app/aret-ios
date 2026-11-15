@@ -369,9 +369,7 @@ final class WatchWorkoutManager:
 
         if nearestIndex <
             navigationCoordinates.count - 1 {
-            for index in
-                nearestIndex..<
-                (navigationCoordinates.count - 1) {
+            for index in nearestIndex..<(navigationCoordinates.count - 1) {
                 let first =
                     navigationCoordinates[index]
                 let second =

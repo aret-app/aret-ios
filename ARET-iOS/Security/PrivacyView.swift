@@ -26,7 +26,7 @@ struct PrivacyView: View {
                     privacyRow(
                         icon: "lock.shield.fill",
                         title: "Protezione file",
-                        detail: "GPX, attività e percorsi personali usano la protezione completa dei file iOS."
+                        detail: "GPX, attività e percorsi personali sono cifrati e accessibili dopo il primo sblocco dell’iPhone, anche quando lo schermo viene nuovamente bloccato."
                     )
 
                     privacyRow(
@@ -169,7 +169,7 @@ struct PrivacyView: View {
                     }
                 } footer: {
                     Text(
-                        "Cancella attività, GPX e percorsi personali dal container ARET. Eventuali workout già salvati in Apple Health restano in Health e vanno gestiti separatamente."
+                        "Cancella attività, GPX, registrazioni incomplete e archiviate e percorsi personali dal container ARET. Termina prima la registrazione attiva. Eventuali workout già salvati in Apple Health restano in Health e vanno gestiti separatamente."
                     )
                 }
             }
@@ -193,9 +193,14 @@ struct PrivacyView: View {
                 "Elimina definitivamente",
                 role: .destructive
             ) {
-                activityStore.deleteAll()
-                routeLibrary.deleteAllPersonalRoutes()
-                showEraseCompleted = true
+                guard locationManager.eraseRecordingData() else { return }
+                do {
+                    try activityStore.deleteAll()
+                    try routeLibrary.deleteAllPersonalRoutes()
+                    showEraseCompleted = true
+                } catch {
+                    locationManager.recordingError = "Eliminazione completata solo in parte. Riprova: \(error.localizedDescription)"
+                }
             }
 
             Button("Annulla", role: .cancel) {}

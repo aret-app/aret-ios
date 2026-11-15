@@ -7,8 +7,8 @@ final class ActivityStore: ObservableObject {
 
     private let storeURL: URL
 
-    init() {
-        let directory = FileManager.default.urls(
+    init(storageDirectory: URL? = nil) {
+        let directory = storageDirectory ?? FileManager.default.urls(
             for: .applicationSupportDirectory,
             in: .userDomainMask
         )[0]
@@ -24,10 +24,22 @@ final class ActivityStore: ObservableObject {
 
     @discardableResult
     func add(_ activity: RecordedActivity) -> Bool {
-        activities.removeAll { $0.id == activity.id }
-        activities.insert(activity, at: 0)
-        activities.sort { $0.startedAt > $1.startedAt }
-        return persist()
+        do {
+            // Re-read on retry: a protected/unreadable index must never be replaced
+            // with the empty list shown by a failed launch-time load.
+            var updated: [RecordedActivity] = []
+            if FileManager.default.fileExists(atPath: storeURL.path) {
+                updated = try JSONDecoder().decode([RecordedActivity].self, from: Data(contentsOf: storeURL))
+            }
+            updated.removeAll { $0.id == activity.id }
+            updated.append(activity)
+            updated.sort { $0.startedAt > $1.startedAt }
+            try PrivateStorage.writeProtected(JSONEncoder().encode(updated), to: storeURL)
+            activities = updated
+            return true
+        } catch {
+            return false
+        }
     }
 
     func delete(at offsets: IndexSet) {
@@ -47,10 +59,12 @@ final class ActivityStore: ObservableObject {
         }
     }
 
-    func deleteAll() {
+    func deleteAll() throws {
+        try PrivateStorage.deleteAllARETGPXFiles()
+        if FileManager.default.fileExists(atPath: storeURL.path) {
+            try FileManager.default.removeItem(at: storeURL)
+        }
         activities.removeAll()
-        try? FileManager.default.removeItem(at: storeURL)
-        PrivateStorage.deleteAllARETGPXFiles()
     }
 
     func gpxURL(for activity: RecordedActivity) -> URL? {

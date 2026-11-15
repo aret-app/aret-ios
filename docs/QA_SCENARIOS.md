@@ -160,3 +160,20 @@ exists. This checklist is how to build **credible local coverage**.
   unlock recover saved points. Do not promise GPS collection while terminated.
 - Test single-point, empty journal, partial last write and corrupt full line:
   preserve original files; errors must not silently discard the recording.
+
+### Follow-up to PR #10
+
+- Host tests passed with Swift 6.0.3 on Linux: journal (20,000 points,
+  batch/restart, source route and old header compatibility, torn write,
+  corruption, archive preservation, encoding failure/retry, privacy erase);
+  ActivityStore (disk failure rollback, retry, duplicates, relaunch,
+  corrupt-index preservation, deletion failure/success).
+- On device, fail the index save: no “Attività salvata” summary or phantom
+  history entry; recovery remains available.
+- Archive an empty/corrupt journal: original bytes remain in RecordingArchives;
+  a new recording can start. Cancel archival: originals remain active.
+- Erase local data: journals and archives are removed too; trying during
+  recording must be rejected. Simulate partial deletion: no success alert.
+- Recover a recording that started on a route: source route ID survives.
+- Verify Watch start/stop after archiving, recovery or erase, and after reboot.
+  HealthKit and route-sync protocols are unchanged; compatibility is unverified.

@@ -136,31 +136,53 @@ See [QA_SCENARIOS.md](QA_SCENARIOS.md) for the hands-on checklist.
 
 ## Recording journal (#4)
 
-`RecordingJournal` stores a UUID/name/start header and newline-delimited GPS
-points in Application Support/ARET/Recording. Each accepted point is appended
-and synchronized before returning to the location handler; there is no timer
-that can be suspended in background. This favors durability over battery/IO;
-measure energy and main-thread latency during long hikes before release.
-Protection and backup exclusion reuse PrivateStorage from PR #9 (required).
-No database migration, network traffic or Watch protocol changes.
+`RecordingJournal` stores UUID/name/start/optional source route ID and
+newline-delimited GPS points in Application Support/ARET/Recording. It
+synchronizes once per CoreLocation delivery (all accepted points plus retries),
+without a timer. IO remains synchronous on the main actor: measure latency and
+energy on long hikes; moving it off-thread requires preserving ordering and
+background execution through stop/save/erase, not just an untracked Task.
+Protection and backup exclusion reuse PrivateStorage from PR #9. No database
+migration, network traffic or Watch protocol changes. Old headers without a
+source route remain readable.
 
-On relaunch, a persistent banner offers **Recupera e salva i punti**. This
-saves the completed prefix as an activity, ending at the last GPS timestamp;
-it does not resume GPS across a gap. A torn final line is ignored without
-changing the journal; corruption in complete lines reports an error. New
-recordings (including Watch starts) cannot overwrite an unfinished journal.
-The journal is removed only after GPX and activity-index writes succeed.
-Stable activity ID and GPX filename make recovery retries idempotent.
-Write failures retain pending points in memory and retry on the next point
-or recovery; points that could not reach disk cannot survive process death.
-An empty/corrupt journal is preserved and currently requires developer
-inspection; there is no destructive discard action. Mirrored Watch sessions
-are not automatically reattached after termination.
+On relaunch, **Recupera e salva i punti** saves the completed prefix ending
+at the last GPS timestamp; it does not resume GPS across a gap or reattach a
+Watch session. A torn final line is ignored without changing the source;
+complete-line corruption reports an error. New starts cannot overwrite an
+unfinished journal. Journal cleanup follows successful GPX AND index writes.
+Final protected writes synchronize the file before reporting success; stable
+UUID and GPX filename prevent duplicate recovery. ActivityStore reloads
+its index before adding: unreadable existing data fail closed, failed writes
+never publish a phantom activity, retries re-read the prior history.
 
-Host journal regression tests (Swift 6 required):
-`bash Tests/RecordingJournal/run.sh`. These compile the production journal
-with host-only storage and point adapters, covering 20,000 points, reopening,
-overwrite prevention, torn append, stable ID, non-destructive recovery,
-corruption and cleanup. They do not validate CoreLocation, iOS protection,
-ActivityStore/UI integration or Watch. Tests were attempted in the Linux
-workspace but could not run (`swiftc` absent); Xcode is also unavailable.
+**Conserva per dopo e libera la registrazione** asks for confirmation then
+moves original files to protected, backup-excluded ARET/RecordingArchives.
+This also handles empty, corrupt or partially initialized journals. Archived
+recovery currently requires technical assistance via the app container; there
+is no archive browser. Pending in-memory points must flush before archival,
+otherwise archiving fails and retains state. Profile erase includes active and
+archived journals, rejects an ongoing recording and reports partial deletion
+errors instead of falsely confirming success.
+
+Append encoding happens before touching the file. Failed writes attempt a
+synced rollback; rollback failure disables further appends to that instance
+rather than appending beyond an uncertain tail. Pending points retry on the
+next delivery or recovery. Points that never reach disk cannot survive death.
+
+Host regression tests (Swift 6):
+
+```bash
+bash Tests/RecordingJournal/run.sh
+bash Tests/ActivityStore/run.sh
+```
+
+The production journal and ActivityStore are compiled with host adapters for
+storage, models and Combine observation. These test disk framing/transactions,
+not iOS protection, Apple Combine, CoreLocation, SwiftUI or HealthKit.
+The journal suite also kills a separate writer with SIGKILL after sync and
+verifies all 100 points on reopening. Both suites passed on Linux using the official Swift 6.0.3 toolchain. All
+production Swift files also passed frontend syntax parsing after correcting
+pre-existing range/closure syntax in Watch, Live Activity and RoutePlanningView.
+This is NOT Xcode SDK type checking, an iOS/watchOS build or a device test.
+Xcode compilation and the physical-device scenarios remain outstanding.
