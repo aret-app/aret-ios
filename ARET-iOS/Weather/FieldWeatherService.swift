@@ -30,6 +30,10 @@ struct HourlyWeather: Identifiable, Sendable {
     let weatherCode: Int
     let visibilityMeters: Double?
     let freezingLevelMeters: Double?
+    let isDaylight: Bool?
+    /// Wind from the pressure level nearest the route altitude, not surface gusts.
+    let windAloftKPH: Double?
+    let windAloftAltitudeMeters: Double?
 
     var symbolName: String {
         WeatherCodePresentation.symbolName(for: weatherCode)
@@ -143,7 +147,7 @@ actor FieldWeatherService {
             ),
             URLQueryItem(
                 name: "hourly",
-                value: "temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,visibility,freezing_level_height"
+                value: "temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,visibility,freezing_level_height,is_day,wind_speed_850hPa,wind_speed_700hPa,geopotential_height_850hPa,geopotential_height_700hPa"
             ),
             URLQueryItem(
                 name: "daily",
@@ -218,6 +222,13 @@ actor FieldWeatherService {
                 continue
             }
 
+            let windAloft = upperAirWind(
+                index: index,
+                hourly: decoded.hourly,
+                targetAltitude: location.verticalAccuracy >= 0 &&
+                    abs(location.altitude) > 1 ? location.altitude : nil
+            )
+
             hourly.append(
                 HourlyWeather(
                     id: rawTime,
@@ -229,8 +240,14 @@ actor FieldWeatherService {
                     windSpeedKPH: decoded.hourly.windSpeed10m[index],
                     windGustKPH: decoded.hourly.windGusts10m[index],
                     weatherCode: decoded.hourly.weatherCode[index],
-                    visibilityMeters: nil,
-                    freezingLevelMeters: nil
+                    visibilityMeters:
+                        decoded.hourly.visibility?[safe: index] ?? nil,
+                    freezingLevelMeters:
+                        decoded.hourly.freezingLevelHeight?[safe: index] ?? nil,
+                    isDaylight:
+                        (decoded.hourly.isDay?[safe: index]).map { $0 == 1 },
+                    windAloftKPH: windAloft?.speed,
+                    windAloftAltitudeMeters: windAloft?.height
                 )
             )
         }
@@ -273,6 +290,37 @@ actor FieldWeatherService {
             longitude: decoded.longitude,
             timezone: decoded.timezone
         )
+    }
+
+    private func upperAirWind(
+        index: Int,
+        hourly: Response.Hourly,
+        targetAltitude: Double?
+    ) -> (speed: Double, height: Double)? {
+        var levels: [(speed: Double, height: Double)] = []
+
+        if let speed = hourly.windSpeed850hPa?[safe: index] ?? nil,
+           let height = hourly.geopotentialHeight850hPa?[safe: index] ?? nil,
+           speed.isFinite, height.isFinite {
+            levels.append((speed: speed, height: height))
+        }
+
+        if let speed = hourly.windSpeed700hPa?[safe: index] ?? nil,
+           let height = hourly.geopotentialHeight700hPa?[safe: index] ?? nil,
+           speed.isFinite, height.isFinite {
+            levels.append((speed: speed, height: height))
+        }
+
+        guard !levels.isEmpty else { return nil }
+
+        // This is a pressure-level proxy: terrain/crest effects and local
+        // gusts can be substantially different at the route location.
+        guard let targetAltitude else { return levels.first }
+
+        return levels.min {
+            abs($0.height - targetAltitude) <
+                abs($1.height - targetAltitude)
+        }
     }
 
     private func currentHourKey(
@@ -351,6 +399,14 @@ private extension FieldWeatherService {
         let weatherCode: [Int]
         let windSpeed10m: [Double]
         let windGusts10m: [Double]
+        let visibility: [Double?]?
+        let freezingLevelHeight: [Double?]?
+        let isDay: [Int]?
+        let windSpeed850hPa: [Double?]?
+        let windSpeed700hPa: [Double?]?
+        let geopotentialHeight850hPa: [Double?]?
+        let geopotentialHeight700hPa: [Double?]?
+
         enum CodingKeys: String, CodingKey {
             case time
             case temperature2m = "temperature_2m"
@@ -359,6 +415,13 @@ private extension FieldWeatherService {
             case weatherCode = "weather_code"
             case windSpeed10m = "wind_speed_10m"
             case windGusts10m = "wind_gusts_10m"
+            case visibility
+            case freezingLevelHeight = "freezing_level_height"
+            case isDay = "is_day"
+            case windSpeed850hPa = "wind_speed_850hPa"
+            case windSpeed700hPa = "wind_speed_700hPa"
+            case geopotentialHeight850hPa = "geopotential_height_850hPa"
+            case geopotentialHeight700hPa = "geopotential_height_700hPa"
         }
     }
 
