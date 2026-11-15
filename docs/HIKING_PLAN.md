@@ -58,8 +58,9 @@ Implemented in the field-test branch:
   or below the highest known route elevation.
 
 Still required for a truly reliable mountain feature:
-- [ ] Sample weather at **trailhead, representative midroute point and
-  summit/high point** rather than one point alone.
+- [x] Sample modeled weather at **start, midroute and highest coordinate**
+  (up to 3 distinct points, best effort; not a summit measurement).
+  Combine hourly risk indicators conservatively when all calls succeed.
 - [ ] Estimate hiking time range conservatively (start, ascent, turnaround,
   descent) and compare with daylight and complete weather window.
 - [ ] Add official severe-weather / storm / avalanche bulletin links and
@@ -86,13 +87,18 @@ and large offline **map-area packages**.
 - [x] Import GPX and save routes locally.
 - [x] Export a discovered or selected route as a standard GPX file using
   the iOS share sheet, without uploading it to ARET's server.
-- [ ] Build a MapLibre topo prototype beside MapKit, including OSM trail
-  line styles, summits, trailheads, refuges, elevation contours and hillshade.
+- [x] Add opt-in **MapLibre + OpenFreeMap Liberty** vector trail basemap
+  beside the MapKit fallback. This is an online beta, **NOT yet full topo**.
+- [ ] Create our own ARET topo style with clear hiking line grades,
+  summits, refuges, **contours and hillshade** from properly licensed DEM.
 - [ ] Choose licensed elevation/terrain tile hosting (Mapterhorn or open
   DEM datasets) and validate terrain gaps with local mountain samples.
-- [ ] Build geospatial **trail and route search** that distinguishes OSM
-  path segments from OSM hiking relations; reject broken/disconnected
-  relations and do not promise every public route exists.
+- [x] Initial summit/via search: show sourced **Monte Procinto / Monte
+  Pisanino** ascent options; query OSM hiking/ferrata relations and show
+  standalone ferrata ways as **partial technical segments**, not GPS hikes.
+- [ ] Expand to a validated ascent-route database and route graph,
+  classify completeness and connect approach, technical section and exit.
+  Reject invalid OSM geometry and avoid promising every ascent exists.
 - [ ] Show route source, licence/attribution, last-known update and
   completeness warnings in the detail view.
 - [ ] Offline map pack downloads by area with file size, storage management,
@@ -106,6 +112,37 @@ and large offline **map-area packages**.
 
 **Offline routes are not offline maps.** Saving a GPX saves geometry and
 coordinates; the basemap tiles still need a separately licenced offline pack.
+
+## Current scope of ascent data
+
+- **Monte Procinto:** Ferrata Aristide Bruni is described as the most
+  accessible documented summit ascent, **but is still a technical ferrata
+  requiring proper equipment and ability**. Linked source: CAI archive.
+- **Monte Pisanino:** Via normale via Foce di Cardeto / Canale delle
+  Rose (EE) and Bagola Bianca (exposed, I-grade passages), both with
+  source links and explicit technical warnings.
+- These curated options have NO GPS geometry until verified against a
+  complete legal/licensed track. They are not drawn as pretend routes.
+- OpenStreetMap relations are shown only when mapable continuous
+  geometry is available. Nearby trails are not guaranteed to reach the
+  summit; mapped via-ferrata *segments* are clearly separate.
+- Preview mode for ARET Sentieri uses OpenFreeMap Liberty vector tiles,
+  and is **online**; it does not yet offer topo contours or area downloads.
+
+## UI field test scenarios
+
+1. Search **Monte Procinto**: ferrata guide and source must appear,
+   and no hiking-grade route should impersonate the ferrata.
+2. Search **Monte Pisanino**: normal route and Bagola Bianca should
+   be distinct, with documented difficulty and linked sources.
+3. Search **Ferrata Bruni**: the search center must resolve to Procinto.
+4. Open ARET Sentieri: vector basemap and selected GPS line; switch to
+   MapKit without losing tracking state or selected route.
+5. Inspect 7-day weather selector: selecting a day should change
+   the assessment without re-fetching the same 16-day forecast.
+6. Compare forecast for start/mid/high point. Missing partial calls
+   must not be passed off as complete multi-point coverage.
+7. Verify real physical-device build and battery before release.
 
 ## Before promoting V0.2 beyond field test
 
