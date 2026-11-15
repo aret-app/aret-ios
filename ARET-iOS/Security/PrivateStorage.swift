@@ -8,7 +8,7 @@ enum PrivateStorage {
         )
 
         try FileManager.default.setAttributes(
-            [.protectionKey: FileProtectionType.complete],
+            [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
             ofItemAtPath: url.path
         )
 
@@ -26,7 +26,7 @@ enum PrivateStorage {
             to: url,
             options: [
                 .atomic,
-                .completeFileProtection
+                .completeFileProtectionUntilFirstUserAuthentication
             ]
         )
 
@@ -39,7 +39,7 @@ enum PrivateStorage {
         }
 
         try FileManager.default.setAttributes(
-            [.protectionKey: FileProtectionType.complete],
+            [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
             ofItemAtPath: url.path
         )
 
