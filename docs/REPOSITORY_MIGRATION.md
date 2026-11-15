@@ -77,7 +77,12 @@ Il trasferimento non modifica codice, geometrie, permessi o provider.
 
 ## Archiviazione e contesto residuo
 
-La checklist operativa e lo stato di archiviazione sono nella issue #8.
+La checklist operativa è nella issue #8. Il tentativo API di archiviazione
+ha restituito HTTP 403 `Resource not accessible by integration`: il token
+connesso non dispone dell'accesso necessario alle impostazioni del repository.
+L'archiviazione resta da eseguire dal proprietario in Settings → General →
+Danger Zone → Archive this repository. Tutte le vecchie PR sono già chiuse;
+il repository resta privato e, fino a quel passaggio, ancora scrivibile.
 Archiviare il vecchio repository solo dopo aver verificato nuove PR e link
 nelle vecchie. Conservare il repository privato come archivio leggibile;
 non cancellarlo, non cambiare visibilità e non eliminare i vecchi branch.
