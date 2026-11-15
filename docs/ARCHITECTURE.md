@@ -70,6 +70,8 @@ watchOS ARETWatchApp                                         │
   Apuane/Appennino textual ascents (not verified GPX).
 - `ARET-iOS/Routes/ARETAdditionalAscentGuides.swift`: 11 extra source-linked
   Apuane/Appennino outings from regional/national park published material.
+- `ARET-iOS/Routes/ARETNovember2026AscentGuides.swift`: 4 more
+  primary-source entries (2 explicit summit routes, 2 area-only).
 - `ARET-iOS/Routes/ARETOfficialRegionalSourcesView.swift`: primary
   source directories in the search screen (Park trails, hikes, Apuane).
 - `ARET-iOS/Routes/MountainAscentGuideCard.swift` and
