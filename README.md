@@ -19,7 +19,7 @@ verificata sul dispositivo**.
 | [Panoramica del prodotto e stato](docs/PRODUCT_AND_STATUS.md) | Che cos'è ARET, cosa funziona nel codice, cosa manca |
 | [Architettura e mappa dei file](docs/ARCHITECTURE.md) | Target, servizi, flussi dati, componenti iOS/Watch |
 | [Scoperta vette e vie nelle aree pilota](docs/REGIONAL_DISCOVERY.md) | Geografia, query OSM, metadati e limiti dei percorsi |
-| [Matrice copertura vette](docs/CATALOG_COVERAGE.csv) | **48 vette suggerite**, schede con fonte e lacune da colmare |
+| [Matrice copertura vette](docs/CATALOG_COVERAGE.csv) | **48 vette suggerite**, 23 con almeno una scheda con fonte e 25 ancora senza |
 | [Meteo, dati, licenze e sicurezza](docs/DATA_SOURCES_AND_SAFETY.md) | Open-Meteo, Overpass, OpenFreeMap, DEM, responsabilità |
 | [Setup e collaborazione](docs/DEVELOPMENT.md) | Come compilare e lavorare in due con branch/PR |
 | [Piano di test](docs/QA_SCENARIOS.md) | Scenario Procinto, Pisanino, Cusna e test sul campo |
@@ -39,7 +39,7 @@ delle route relations e dei segmenti di ferrata effettivamente mappati,
 più i **singoli tratti di sentiero OSM** (`path/footway`) vicini alla
 vetta con difficoltà quando disponibile. Questi tratti NON sono
 automaticamente vie complete fino in cima.
-**21 schede testuali con fonti** per Apuane e Appennino (inclusi Panie, Forato, Procinto, Pisanino, Cusna, Prado, Orsaro, Sillara e altre). Le descrizioni non sono GPX completi verificati.
+**25 schede testuali con fonti** per Apuane e Appennino (inclusi Panie, Forato, Procinto, Pisanino, Cusna, Prado, Orsaro, Sillara e altre). Le descrizioni non sono GPX completi verificati.
 Importazione ed esportazione **GPX**, libreria percorsi personali.
 
 **Attività** → cronologia GPS, statistiche e riutilizzo delle attività
