@@ -58,9 +58,13 @@ Climbing and alpinism will add detail without burdening the hiking flow.
 - [x] Show nearby OSM path/footway **segments** around the named summit,
   with sourced `sac_scale`/`cai_scale` tags when present and no
   false claim of a complete ascent.
-- [x] Source-backed prose guides for Procinto/Pisanino and six Appennino
-  destinations (Cusna, Succiso, Orsaro, Sillara, Bismantova, Acuto).
-  Ten textual entries in total; none claims verified GPS geometry.
+- [x] Grow source-linked textual collection to **21 entries** for Apuane
+  and Appennino with additional official Park examples (Panie, Forato,
+  Campocatino, Cusna, Succiso, Prado, Marmagna, etc.). No verified
+  full GPS geometries are attached to these prose entries.
+- [x] Maintain [summit coverage matrix](CATALOG_COVERAGE.csv), with
+  48 local search shortcuts, 19 with a source-linked description and
+  29 without. OSM peak discovery remains dynamic and incomplete.
 - [x] Show OSM `sac_scale` / `via_ferrata_scale` only if tags exist,
   never invent a route grade from altitude or nearby proximity.
 
