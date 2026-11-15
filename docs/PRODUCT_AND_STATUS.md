@@ -41,7 +41,7 @@ le schede narrative corredate di fonte vengono aggiunte separatamente; la verifi
 | Sezione | Esperienza nel codice |
 | --- | --- |
 | Esplora | Mappa a tutto schermo, posizione, stile MapKit o ARET Sentieri online (MapLibre), linea percorso, REC GPS, SOS e meteo sintetico |
-| Itinerari | Percorsi demo/personali, import GPX, ricerca montagna/via, catalogo di vette OSM, schede con fonti esterne, anteprima altimetrica, export GPX |
+| Itinerari | Percorsi demo/personali, import GPX, ricerca montagna/via, catalogo di vette OSM, singoli segmenti sentieristici con scala OSM disponibile, schede con fonti esterne, anteprima altimetrica, export GPX |
 | Attività | Cronologia, statistiche, dettaglio registrazione, GPX, possibilità di riutilizzare la traccia |
 | Meteo | Open-Meteo, finestre meteo, raffiche, vento atmosferico, zero termico, visibilità, analisi fino a tre punti, previsioni prossimi giorni |
 | Profilo | Privacy, gestione dati e impostazioni come Live Activity |
