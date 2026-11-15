@@ -6,7 +6,7 @@ import Charts
 struct MountainWeatherDashboard: View {
     let hours: [HourlyWeather]
     let window: WeatherWindow
-    let route: RouteLibraryItem
+    let route: RouteLibraryItem?
     let retrievedAt: Date
     let samplingPoints: Int
 
@@ -14,7 +14,7 @@ struct MountainWeatherDashboard: View {
         HikingWeatherAssessment.evaluate(
             hours: hours,
             window: window,
-            maximumRouteAltitudeMeters: route.maximumAltitudeMeters
+            maximumRouteAltitudeMeters: route?.maximumAltitudeMeters ?? 0
         )
     }
 
@@ -61,7 +61,8 @@ struct MountainWeatherDashboard: View {
     }
 
     private var estimateHours: Double? {
-        guard route.distanceKilometers > 0.5,
+        guard let route,
+              route.distanceKilometers > 0.5,
               route.kind == .hiking else { return nil }
 
         // Rough moving-time estimate, NOT a verified schedule.
@@ -92,7 +93,7 @@ struct MountainWeatherDashboard: View {
 
         // A favorable hour-by-hour forecast is not a go/no-go clearance
         // for an unknown itinerary duration or a technical route.
-        if route.kind != .hiking { return .caution }
+        if route == nil || route?.kind != .hiking { return .caution }
         if windowHours == nil || (windowHours ?? 0) < 4 {
             return .caution
         }
@@ -101,7 +102,7 @@ struct MountainWeatherDashboard: View {
             return .caution
         }
         // For high routes, a green assessment requires basic altitude data.
-        if route.maximumAltitudeMeters >= 1_200 &&
+        if (route?.maximumAltitudeMeters ?? 0) >= 1_200 &&
            (freezingLevel == nil || assessment.windAloftKPH == nil) {
             return .caution
         }
@@ -157,7 +158,9 @@ struct MountainWeatherDashboard: View {
                     .tracking(1.2)
 
                 Text(
-                    "Previsioni su \(samplingPoints) \(samplingPoints == 1 ? "punto" : "punti") dell'itinerario"
+                    route == nil
+                        ? "Meteo per la località: nessun itinerario selezionato"
+                        : "Previsioni su \(samplingPoints) \(samplingPoints == 1 ? "punto" : "punti") dell'itinerario"
                 )
                     .font(.caption2)
                     .foregroundStyle(.secondary)
@@ -479,6 +482,15 @@ struct MountainWeatherDashboard: View {
 
     private var reasons: some View {
         VStack(alignment: .leading, spacing: 11) {
+            if route == nil {
+                Label(
+                    "Valutazione generica sulla località. Seleziona un itinerario per analizzare anche quota, tempi e più punti lungo la salita.",
+                    systemImage: "map"
+                )
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.orange)
+            }
+
             if effectiveGuidance != assessment.guidance {
                 Label(
                     "Prudenza aggiuntiva: il solo meteo favorevole non basta a coprire una salita tecnica, una finestra troppo breve o dati in quota mancanti.",
