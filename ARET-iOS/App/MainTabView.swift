@@ -94,6 +94,32 @@ struct MainTabView: View {
                 }
                 .tag(ARETTab.profile)
         }
+        .safeAreaInset(edge: .top) {
+            if locationManager.hasIncompleteRecording && !locationManager.isTracking {
+                VStack {
+                    Text("Registrazione incompleta disponibile")
+                    Button("Recupera e salva i punti") {
+                        if let activity = locationManager.recoverRecording() {
+                            if activityStore.add(activity) {
+                                locationManager.confirmRecordingSaved()
+                            } else {
+                                locationManager.recordingError = "Salvataggio fallito; punti conservati."
+                            }
+                        }
+                    }
+                }
+                .padding()
+                .background(.regularMaterial)
+            }
+        }
+        .alert("Registrazione GPS", isPresented: Binding(
+            get: { locationManager.recordingError != nil },
+            set: { if !$0 { locationManager.recordingError = nil } }
+        )) {
+            Button("OK") { locationManager.recordingError = nil }
+        } message: {
+            Text(locationManager.recordingError ?? "")
+        }
         .tint(.aretOrange)
         .toolbarBackground(
             .visible,
@@ -160,7 +186,7 @@ struct MainTabView: View {
                 )
 
             watchStartedPhoneTracking =
-                true
+                locationManager.isTracking
 
             selectedTab = .map
             return
@@ -179,7 +205,11 @@ struct MainTabView: View {
                 sourceRouteID:
                     watchSourceRouteID
             ) {
-            activityStore.add(activity)
+            if activityStore.add(activity) {
+                locationManager.confirmRecordingSaved()
+            } else {
+                locationManager.recordingError = "Attività non salvata. Registrazione conservata per il recupero."
+            }
         }
 
         watchStartedPhoneTracking = false

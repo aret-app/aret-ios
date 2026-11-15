@@ -133,3 +133,34 @@ commit is not evidence of a compiled, signed, device-tested feature.
 7. Only then implement full topo/contours/offline map downloads.
 
 See [QA_SCENARIOS.md](QA_SCENARIOS.md) for the hands-on checklist.
+
+## Recording journal (#4)
+
+`RecordingJournal` stores a UUID/name/start header and newline-delimited GPS
+points in Application Support/ARET/Recording. Each accepted point is appended
+and synchronized before returning to the location handler; there is no timer
+that can be suspended in background. This favors durability over battery/IO;
+measure energy and main-thread latency during long hikes before release.
+Protection and backup exclusion reuse PrivateStorage from PR #9 (required).
+No database migration, network traffic or Watch protocol changes.
+
+On relaunch, a persistent banner offers **Recupera e salva i punti**. This
+saves the completed prefix as an activity, ending at the last GPS timestamp;
+it does not resume GPS across a gap. A torn final line is ignored without
+changing the journal; corruption in complete lines reports an error. New
+recordings (including Watch starts) cannot overwrite an unfinished journal.
+The journal is removed only after GPX and activity-index writes succeed.
+Stable activity ID and GPX filename make recovery retries idempotent.
+Write failures retain pending points in memory and retry on the next point
+or recovery; points that could not reach disk cannot survive process death.
+An empty/corrupt journal is preserved and currently requires developer
+inspection; there is no destructive discard action. Mirrored Watch sessions
+are not automatically reattached after termination.
+
+Host journal regression tests (Swift 6 required):
+`bash Tests/RecordingJournal/run.sh`. These compile the production journal
+with host-only storage and point adapters, covering 20,000 points, reopening,
+overwrite prevention, torn append, stable ID, non-destructive recovery,
+corruption and cleanup. They do not validate CoreLocation, iOS protection,
+ActivityStore/UI integration or Watch. Tests were attempted in the Linux
+workspace but could not run (`swiftc` absent); Xcode is also unavailable.
