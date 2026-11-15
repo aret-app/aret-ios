@@ -49,12 +49,13 @@ struct WeatherView: View {
                             currentConditions(forecast)
 
                             if shouldShowRouteWindow,
-                               let route =
-                                routeLibrary.activeRoute {
+                               let route = routeLibrary.activeRoute {
                                 weatherWindowSection(
                                     forecast: forecast,
                                     route: route
                                 )
+                            } else {
+                                localWeatherWindowSection(forecast)
                             }
 
                             hourlyForecast(
@@ -520,6 +521,30 @@ struct WeatherView: View {
                 cornerRadius: 24,
                 style: .continuous
             )
+        )
+    }
+
+    private func localWeatherWindowSection(
+        _ forecast: WeatherForecast
+    ) -> some View {
+        let todayKey = dateKey(
+            date: Date(),
+            timezoneIdentifier: forecast.timezone
+        )
+        let todayHours = forecast.hourly.filter {
+            $0.dateKey == todayKey
+        }
+        let window = WeatherWindowEngine.bestWindow(
+            hours: todayHours,
+            routeKind: .hiking
+        )
+
+        return MountainWeatherDashboard(
+            hours: todayHours,
+            window: window,
+            route: nil,
+            retrievedAt: forecast.current.fetchedAt,
+            samplingPoints: 1
         )
     }
 
