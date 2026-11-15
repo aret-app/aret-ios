@@ -115,14 +115,16 @@ confirm licensing of any external topo/guide content.
 ## Source-backed textual ascents
 
 `MountainAscentGuide.swift` plus `ARETAdditionalAscentGuides.swift` now
-contain **21 short source-linked textual descriptions** across the two
+contain **25 short source-linked textual descriptions** across the two
 areas (not all entries reach their named summit).
 The original 10 cards covered Procinto/Pisanino (Apuane) and Cusna,
 Succiso, Orsaro, Sillara, Bismantova and Acuto (Appennino).
-The additional 11 cover Panie, Monte Forato (hiking and ferrata),
+The previous additional 11 cover Panie, Monte Forato (hiking and ferrata),
 Campocatino/San Viano (NOT Roccandagia summit), Monte Tondo,
 Pania di Corfino, Cisa/Prampa, Monte Vecchio, Vallestrina/Passone,
 Marmagna/Logarghena and a multi-stage Prado→Orsaro crossing.
+
+Four further source-linked cards added 2026-11-15 cover Ventasso and Sillano (the Park explicitly names summit passage), plus Corchia/Mosceta as an **approach only** and the Sagro/Bore loop as an **area outing only**. The latter two MUST NOT be represented as ascents to the summit.
 
 Some entries deliberately describe an outing **near** a mountain,
 rather than a confirmed summit ascent. Do not advertise them as
@@ -161,10 +163,10 @@ before automated replication.
 ### Coverage gap inventory
 
 [CATALOG_COVERAGE.csv](CATALOG_COVERAGE.csv) tracks the
-**48 quick-search names**, 21 linked guide entries associated with
-**19 of those names**, and **29 names without local curated source
+**48 quick-search names**, 25 linked guide entries associated with
+**23 of those names**, and **25 names without local curated source
 records**. It does not represent all geographic peaks or all routes.
-All `full_gpx_verified` values currently remain `no`.
+All `full_gpx_verified` values currently remain `no`. The CSV now distinguishes `source_linked_summit_route_text`, `source_linked_approach_only` and `source_linked_area_loop_only` for the four new entries; older `source_linked_text_only` records require similar classification review.
 OSM discovery can still return nearby geometry, but a track
 appearing in results is not automatically a verified summit route.
 

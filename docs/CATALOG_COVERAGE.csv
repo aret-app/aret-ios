@@ -1,11 +1,13 @@
 # ARET pilot checklist: these are suggested summits, NOT a complete census of every geographic feature.
 # source_linked_text_only means textual guidance with a link, NOT a verified GPX or guaranteed summit ascent.
+# source_linked_summit_route_text means source explicitly names summit passage, but GPS geometry and current access are NOT verified.
+# source_linked_approach_only and source_linked_area_loop_only are NOT summit ascents.
 # osm_lookup_only means OSM peak/route lookup exists but there is no curated source-linked card yet.
 "region","summit_search_shortcut","source_linked_guide_ids","full_gpx_verified","data_status","required_validation"
 "apuane","Monte Pisanino","pisanino-normale;pisanino-bagola","no","source_linked_text_only","verify_source_current_access_and_full_route_geometry"
 "apuane","Pizzo d'Uccello","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
 "apuane","Monte Grondilice","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
-"apuane","Monte Sagro","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
+"apuane","Monte Sagro","apuane-sagro-bore-loop","no","source_linked_area_loop_only","summit_ascent_not_documented_verify_access_and_full_route"
 "apuane","Monte Roccandagia","apuane-campocatino-san-viano","no","source_linked_text_only","verify_source_current_access_and_full_route_geometry"
 "apuane","Monte Tambura","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
 "apuane","Monte Sella","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
@@ -13,7 +15,7 @@
 "apuane","Monte Contrario","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
 "apuane","Monte Sumbra","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
 "apuane","Monte Altissimo","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
-"apuane","Monte Corchia","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
+"apuane","Monte Corchia","apuane-corchia-mosceta-approach","no","source_linked_approach_only","summit_ascent_not_documented_verify_access_and_full_route"
 "apuane","Pania della Croce","apuane-anello-panie","no","source_linked_text_only","verify_source_current_access_and_full_route_geometry"
 "apuane","Pania Secca","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
 "apuane","Pizzo delle Saette","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
@@ -36,7 +38,7 @@
 "appennino","Monte Cisa","appennino-cisa-prampa","no","source_linked_text_only","verify_source_current_access_and_full_route_geometry"
 "appennino","Monte Prampa","appennino-cisa-prampa","no","source_linked_text_only","verify_source_current_access_and_full_route_geometry"
 "appennino","Alpe di Vallestrina","appennino-vallestrina-passone","no","source_linked_text_only","verify_source_current_access_and_full_route_geometry"
-"appennino","Monte Ventasso","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
+"appennino","Monte Ventasso","appennino-ventasso-pratizzano","no","source_linked_summit_route_text","verify_source_current_access_and_full_route_geometry"
 "appennino","Monte la Nuda","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
 "appennino","Monte Giovo","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
 "appennino","Monte Rondinaio","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
@@ -45,7 +47,7 @@
 "appennino","Monte Libro Aperto","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
 "appennino","Monte Spigolino","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
 "appennino","Monte Gennaio","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
-"appennino","Monte Sillano","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
+"appennino","Monte Sillano","appennino-sillano-rio-re","no","source_linked_summit_route_text","verify_source_current_access_and_full_route_geometry"
 "appennino","Monte Romecchio","","no","osm_lookup_only","find_primary_source_grade_and_complete_gpx"
 "appennino","Monte Acuto","acuto-lagastrello","no","source_linked_text_only","verify_source_current_access_and_full_route_geometry"
 "appennino","Pania di Corfino","appennino-pania-corfino","no","source_linked_text_only","verify_source_current_access_and_full_route_geometry"
