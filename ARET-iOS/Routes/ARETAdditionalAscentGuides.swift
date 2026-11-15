@@ -38,11 +38,11 @@ enum ARETAdditionalAscentGuides {
             summit: "Monte Forato",
             title: "Ferrata Renato Salvatori — traversata del Forato",
             discipline: .ferrata,
-            documentedDifficulty: "Via ferrata · grado attuale non verificato",
+            documentedDifficulty: "EEA / tratti EE · CAI 110A (ferrata)"
             itinerary: "Via attrezzata sul settore del Monte Forato descritta dal Parco delle Apuane, nel contesto di Foce di Petrosciana e delle due sommità collegate dall'arco naturale.",
             caution: "È una ferrata: casco, imbrago, set omologato e capacità di progressione sono fondamentali. Non usare la qualifica storica di facile come valutazione attuale. Verificare chiusure, stato dei cavi e uscita.",
-            sourceName: "Parco Alpi Apuane — Itinerari alpinistici",
-            sourceURL: URL(string: "https://parcapuane.toscana.it/turismo/itinerari_sez_ing.asp?id=23")!,
+            sourceName: "CAI Toscana — elenco sentieri 2025, ferrata 110A",
+            sourceURL: URL(string: "https://organizzazione.cai.it/gr-toscana/wp-content/uploads/sites/66/2025/10/Sentieri-CAI-ufficiale-21-10-2025.pdf")!,
             searchTerms: ["monte forato", "forato", "renato salvatori", "ferrata salvatori"]
         ),
         MountainAscentGuide(
@@ -121,7 +121,7 @@ enum ARETAdditionalAscentGuides {
             caution: "Alte quote e versanti esposti al meteo: nebbia e vento possono rendere difficile orientamento e rientro. Non equiparare automaticamente il passaggio vicino alla montagna alla salita alla sua sommità.",
             sourceName: "Parco Nazionale — Vallestrina e Passone",
             sourceURL: URL(string: "https://www.parcoappennino.it/percorso.php?id=75")!,
-            searchTerms: ["vallestrina", "alpe di vallestrina", "passone", "febb io", "febbio"]
+            searchTerms: ["vallestrina", "alpe di vallestrina", "passone", "febbio", "febbio"]
         ),
         MountainAscentGuide(
             id: "appennino-marmagna-logarghena",
@@ -147,7 +147,7 @@ enum ARETAdditionalAscentGuides {
             caution: "NON è una normale escursione giornaliera: richiede piano delle tappe, logistica, meteo per più giorni e verifica di aperture. Il titolo non sostituisce la descrizione di ogni singola salita.",
             sourceName: "Parco Nazionale — Traversata Appennino Tosco-Emiliano",
             sourceURL: URL(string: "https://www.parcoappennino.it/percorso.php?id=109&id_zona=8")!,
-            searchTerms: ["monte prado", "prado", "traversata appennino", "orsaro", "ge a", "gea"]
+            searchTerms: ["monte prado", "prado", "traversata appennino", "orsaro", "gea"]
         )
     ]
 }
