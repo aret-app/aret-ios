@@ -21,10 +21,16 @@ final class OnlineRouteSearchService {
     private init() {}
 
     func search(query: String) async throws -> [RouteLibraryItem] {
+        try await discover(query: query).routes
+    }
+
+    func discover(query: String) async throws -> MountainRouteSearchResult {
         let trimmed = query.trimmingCharacters(
             in: .whitespacesAndNewlines
         )
-        guard !trimmed.isEmpty else { return [] }
+        guard !trimmed.isEmpty else {
+            return MountainRouteSearchResult(routes: [], technicalSegments: [])
+        }
 
         let geocodingQuery =
             MountainAscentLibrary.preferredSearchCenter(for: trimmed)
@@ -33,9 +39,14 @@ final class OnlineRouteSearchService {
         let center = try await geocode(query: geocodingQuery)
         let overpassQuery = """
         [out:json][timeout:30];
-        relation(around:12000,\(center.latitude),\(center.longitude))
-          ["type"="route"]
-          ["route"~"^(hiking|foot|via_ferrata)$"];
+        (
+          relation(around:12000,\(center.latitude),\(center.longitude))
+            ["type"="route"]["route"~"^(hiking|foot|via_ferrata)$"];
+          way(around:5000,\(center.latitude),\(center.longitude))
+            ["highway"="via_ferrata"];
+          way(around:5000,\(center.latitude),\(center.longitude))
+            ["via_ferrata_scale"];
+        );
         out tags center geom;
         """
 
@@ -75,7 +86,9 @@ final class OnlineRouteSearchService {
             from: data
         )
 
-        let results = decoded.elements.compactMap { relation in
+        let results = decoded.elements.filter {
+            $0.type == "relation"
+        }.compactMap { relation in
             mapRelation(
                 relation,
                 searchCenter: center,
@@ -90,7 +103,53 @@ final class OnlineRouteSearchService {
         }
         .prefix(35)
 
-        return results.map(\.route)
+        let technicalSegments = decoded.elements
+            .filter { $0.type == "way" }
+            .compactMap { mapTechnicalSegment($0) }
+            .sorted { $0.name < $1.name }
+
+        // Both whole route relations and isolated ferrata sections are
+        // displayed, with different labels and NO invented connectors.
+        return MountainRouteSearchResult(
+            routes: results.map(\.route),
+            technicalSegments: Array(technicalSegments.prefix(15))
+        )
+    }
+
+    private func mapTechnicalSegment(
+        _ way: OverpassElement
+    ) -> OSMTechnicalSegment? {
+        guard
+            let raw = way.geometry,
+            raw.count >= 2,
+            let tags = way.tags
+        else { return nil }
+
+        let points = raw.compactMap { point -> ARETCoordinate? in
+            guard
+                (-90...90).contains(point.lat),
+                (-180...180).contains(point.lon)
+            else { return nil }
+            return ARETCoordinate(
+                latitude: point.lat,
+                longitude: point.lon
+            )
+        }
+
+        guard points.count >= 2 else { return nil }
+
+        return OSMTechnicalSegment(
+            id: "osm-ferrata-way-\(way.id)",
+            name: tags["name:it"] ?? tags["name"] ??
+                "Tratto di via ferrata",
+            difficulty: tags["via_ferrata_scale"].map {
+                "Scala OSM \($0) — da verificare"
+            } ?? "Difficoltà non riportata su OSM",
+            points: points,
+            sourceURL: URL(
+                string: "https://www.openstreetmap.org/way/\(way.id)"
+            )!
+        )
     }
 
     private func geocode(
@@ -258,14 +317,14 @@ final class OnlineRouteSearchService {
     }
 
     /// OSM can provide a route in arbitrary member order. We accept only
-    /// lines for which endpoints can be chained within 25m. 25m is a
-    /// tolerance for inaccurate endpoints, not a navigable interpolation.
+    /// lines for which endpoints can be chained within 3m. Larger
+    /// gaps must never be silently bridged by a straight-line segment.
     private func stitchIfContinuous(
         _ segments: [[ARETCoordinate]]
     ) -> [ARETCoordinate]? {
         guard var first = segments.first else { return nil }
         var unused = Array(segments.dropFirst())
-        let tolerance = 25.0
+        let tolerance = 3.0
 
         while !unused.isEmpty {
             guard let end = first.last else { return nil }
@@ -333,6 +392,19 @@ final class OnlineRouteSearchService {
     }
 }
 
+struct MountainRouteSearchResult {
+    let routes: [RouteLibraryItem]
+    let technicalSegments: [OSMTechnicalSegment]
+}
+
+struct OSMTechnicalSegment: Identifiable, Hashable {
+    let id: String
+    let name: String
+    let difficulty: String
+    let points: [ARETCoordinate]
+    let sourceURL: URL
+}
+
 private struct MappedRoute {
     let route: RouteLibraryItem
     let nearestDistance: CLLocationDistance
@@ -344,9 +416,11 @@ private struct OverpassResponse: Decodable {
 }
 
 private struct OverpassElement: Decodable {
+    let type: String
     let id: Int64
     let tags: [String: String]?
     let members: [OverpassMember]?
+    let geometry: [OverpassPoint]?
 }
 
 private struct OverpassMember: Decodable {
