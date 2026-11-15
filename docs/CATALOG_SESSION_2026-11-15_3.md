@@ -22,7 +22,7 @@
 - Base: 21 cards, 19/48 shortcut names source-linked, 29 without.
 - This PR alone: 22 cards, 20/48 names linked, 28 without.
 - PR #3 adds four cards / four new names; PR #5 is a La Nuda card **for a different mountain** but shares the same ambiguous shortcut row; PR #6 adds one new Spigolino name.
-- Assuming all #3/#5/#6 and this PR merge with correct conflict resolution, **27 source-linked cards and 25/48 shortcut names** linked; **23 names without**. This does NOT mean both La Nuda summits have separate indexed shortcut identities or that all 25 cards are summit ascents.
+- Assuming all #3/#5/#6 and this PR merge with correct conflict resolution, **28 source-linked cards and 25/48 shortcut names** linked; **23 names without**. This does NOT mean both La Nuda summits have separate indexed shortcut identities or that all 25 cards are summit ascents.
 - All `full_gpx_verified` values remain `no`.
 
 ## Collaboration and checks
