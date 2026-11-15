@@ -1,0 +1,47 @@
+name: ARET iOS simulator build (manual)
+
+# Explicitly manual for now: macOS runners consume paid/free included
+# CI minutes on private repositories. Run when developers agree.
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build ARET iOS / dependencies
+    runs-on: macos-15
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout selected branch
+        uses: actions/checkout@v4
+
+      - name: Show selected Xcode
+        run: |
+          xcode-select -p
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: |
+          brew install xcodegen
+          xcodegen --version
+
+      - name: Generate project from project.yml
+        run: xcodegen generate
+
+      - name: Resolve Swift packages (MapLibre)
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project ARET.xcodeproj \
+            -scheme ARET
+
+      - name: Build iOS simulator (unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project ARET.xcodeproj \
+            -scheme ARET \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build
