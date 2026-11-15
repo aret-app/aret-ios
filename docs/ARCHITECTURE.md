@@ -67,7 +67,7 @@ watchOS ARETWatchApp                                         │
 - `ARET-iOS/Routes/OnlineRouteSearchService.swift`: summit geocoding,
   OSM relation/way query, geometry validation and route mapping.
 - `ARET-iOS/Routes/MountainAscentGuide.swift`: curated source-backed
-  Procinto/Pisanino textual ascents (not verified GPX).
+  Apuane/Appennino textual ascents (not verified GPX).
 - `ARET-iOS/Routes/MountainAscentGuideCard.swift` and
   `TechnicalSegmentPreview.swift`: UX for documented ascents and
   individual OSM ferrata segments.
