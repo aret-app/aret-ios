@@ -422,6 +422,12 @@ struct RoutePlanningView: View {
                 }
 
                 if let forecast {
+                    MountainWeatherWeekPicker(
+                        forecast: forecast,
+                        route: plannedRoute,
+                        selectedDate: $selectedDate
+                    )
+
                     plannedDayWeather(forecast)
 
                     let hours = hoursForSelectedDate(forecast)
