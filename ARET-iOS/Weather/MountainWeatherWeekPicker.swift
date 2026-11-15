@@ -68,8 +68,8 @@ struct MountainWeatherWeekPicker: View {
                     Circle()
                         .fill(
                             window.quality == .noClearWindow
-                                ? .orange
-                                : .green
+                                ? Color.secondary
+                                : Color.aretOrange
                         )
                         .frame(width: 6, height: 6)
 
