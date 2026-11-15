@@ -3,7 +3,7 @@ import SwiftUI
 /// Conservative forecast interpretation for hiking.
 /// This is NOT a safety certification, hazard bulletin or go/no-go order.
 struct HikingWeatherAssessment {
-    enum Guidance {
+    enum Guidance: Equatable {
         case relativelyFavorable
         case caution
         case considerPostponing
@@ -300,7 +300,7 @@ struct HikingWeatherAdviceCard: View {
 
                     Text(reason)
                         .font(.subheadline)
-                        .foregroundStyle(.primary.opacity(0.85))
+                        .foregroundStyle(Color.white.opacity(0.85))
                 }
             }
 
