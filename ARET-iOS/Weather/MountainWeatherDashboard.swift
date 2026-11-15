@@ -84,8 +84,31 @@ struct MountainWeatherDashboard: View {
         return Double(endHour - startHour)
     }
 
+    private var effectiveGuidance: HikingWeatherAssessment.Guidance {
+        if assessment.guidance != .relativelyFavorable {
+            return assessment.guidance
+        }
+
+        // A favorable hour-by-hour forecast is not a go/no-go clearance
+        // for an unknown itinerary duration or a technical route.
+        if route.kind != .hiking { return .caution }
+        if windowHours == nil || (windowHours ?? 0) < 4 {
+            return .caution
+        }
+        if let estimateHours, let windowHours,
+           windowHours < estimateHours + 1 {
+            return .caution
+        }
+        // For high routes, a green assessment requires basic altitude data.
+        if route.maximumAltitudeMeters >= 1_200 &&
+           (freezingLevel == nil || assessment.windAloftKPH == nil) {
+            return .caution
+        }
+        return .relativelyFavorable
+    }
+
     private var advisoryColor: Color {
-        assessment.guidance.color
+        effectiveGuidance.color
     }
 
     var body: some View {
@@ -152,7 +175,7 @@ struct MountainWeatherDashboard: View {
                         .fill(advisoryColor.opacity(0.16))
                         .frame(width: 48, height: 48)
 
-                    Image(systemName: assessment.guidance.symbol)
+                    Image(systemName: effectiveGuidance.symbol)
                         .font(.title2)
                         .foregroundStyle(advisoryColor)
                 }
@@ -163,7 +186,7 @@ struct MountainWeatherDashboard: View {
                         .tracking(1.4)
                         .foregroundStyle(.white.opacity(0.62))
 
-                    Text(assessment.guidance.title)
+                    Text(effectiveGuidance.title)
                         .font(.title3.weight(.bold))
                         .foregroundStyle(.white)
                         .fixedSize(horizontal: false, vertical: true)
@@ -300,7 +323,7 @@ struct MountainWeatherDashboard: View {
                     Color.aretSurface,
                     in: RoundedRectangle(cornerRadius: 17)
                 )
-                .gridCellColumns(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }
@@ -453,6 +476,15 @@ struct MountainWeatherDashboard: View {
 
     private var reasons: some View {
         VStack(alignment: .leading, spacing: 11) {
+            if effectiveGuidance != assessment.guidance {
+                Label(
+                    "Prudenza aggiuntiva: il solo meteo favorevole non basta a coprire una salita tecnica, una finestra troppo breve o dati in quota mancanti.",
+                    systemImage: "exclamationmark.triangle.fill"
+                )
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.orange)
+            }
+
             Text("PERCHÉ QUESTA VALUTAZIONE")
                 .font(.caption.weight(.bold))
                 .tracking(0.9)
