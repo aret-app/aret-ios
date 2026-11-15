@@ -405,16 +405,11 @@ struct RoutePlanningView: View {
                         routeKind: plannedRoute.kind
                     )
 
-                    weatherWindowCard(
-                        window: window,
-                        hours: hours
-                    )
-
-                    HikingWeatherAdviceCard(
+                    MountainWeatherDashboard(
                         hours: hours,
                         window: window,
-                        maximumRouteAltitudeMeters:
-                            plannedRoute.maximumAltitudeMeters
+                        route: plannedRoute,
+                        retrievedAt: forecast.current.fetchedAt
                     )
 
                     selectedDayHourly(hours)
