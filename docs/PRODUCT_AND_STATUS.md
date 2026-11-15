@@ -21,7 +21,7 @@ alpinismo, ghiaccio e attività tecniche, con livelli informativi distinti.
 Alpi Apuane e Appennino tosco-emiliano, e non tutta Italia, Europa o mondo.
 È una **delimitazione funzionale**, non una dichiarazione che abbiamo già
 tutti gli itinerari. Dati e geometrie arriveranno via OSM quando presenti;
-le schede narrative verificate vengono aggiunte separatamente.
+le schede narrative corredate di fonte vengono aggiunte separatamente; la verifica sul campo resta necessaria.
 
 ### Ricerca in concreto
 
@@ -41,7 +41,7 @@ le schede narrative verificate vengono aggiunte separatamente.
 | Sezione | Esperienza nel codice |
 | --- | --- |
 | Esplora | Mappa a tutto schermo, posizione, stile MapKit o ARET Sentieri online (MapLibre), linea percorso, REC GPS, SOS e meteo sintetico |
-| Itinerari | Percorsi demo/personali, import GPX, ricerca montagna/via, catalogo di vette OSM, schede verificate, anteprima altimetrica, export GPX |
+| Itinerari | Percorsi demo/personali, import GPX, ricerca montagna/via, catalogo di vette OSM, schede con fonti esterne, anteprima altimetrica, export GPX |
 | Attività | Cronologia, statistiche, dettaglio registrazione, GPX, possibilità di riutilizzare la traccia |
 | Meteo | Open-Meteo, finestre meteo, raffiche, vento atmosferico, zero termico, visibilità, analisi fino a tre punti, previsioni prossimi giorni |
 | Profilo | Privacy, gestione dati e impostazioni come Live Activity |
