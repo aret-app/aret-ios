@@ -20,6 +20,12 @@ screenshots, and any failure in the PR/issue.
 
 ## Regional summit discovery
 
+- [ ] Search Ventasso: Pratizzano summit loop E, Park 4 h and 650 m D+; no verified GPS.
+- [ ] Search Sillano: Park T+ label is source-attributed; caution for 1020 m D+, ford and steep summit trace.
+- [ ] Search Corchia: Levigliani–Mosceta CAI 9 is an approach, not summit ascent.
+- [ ] Search Sagro: Colonna–Bore loop is an area outing, not summit ascent.
+- [ ] Ensure these four entries show the exact Park link and never offer fake full GPX.
+
 - [ ] Validate the 11 additional sourced guides in
       `ARETAdditionalAscentGuides.swift` against their current Park pages
       and local terrain; links are *informational*, not verified GPX.
