@@ -78,6 +78,8 @@ struct WeatherForecast: Sendable {
     let latitude: Double
     let longitude: Double
     let timezone: String
+    /// Number of distinct route positions actually sampled.
+    var samplingPointCount: Int = 1
 }
 
 enum WeatherCodePresentation {
@@ -125,6 +127,156 @@ actor FieldWeatherService {
     func currentWeather(at location: CLLocation) async throws -> WeatherSnapshot {
         let result = try await forecast(at: location)
         return result.current
+    }
+
+    /// Conservatively merges weather forecasts at up to three distinct
+    /// positions along an itinerary: start, midpoint and highest GPS/DEM point
+    /// (or end where no altitude is recorded). This is still model data,
+    /// not ground-truth for exposed ridges or narrow gullies.
+    func forecastAlongRoute(
+        _ route: RouteLibraryItem
+    ) async throws -> WeatherForecast {
+        let points = route.coordinates
+        guard points.count >= 2 else {
+            throw URLError(.badURL)
+        }
+
+        let highest = points.enumerated()
+            .filter { $0.element.altitude != nil }
+            .max {
+                ($0.element.altitude ?? -.infinity) <
+                    ($1.element.altitude ?? -.infinity)
+            }?.offset ?? (points.count - 1)
+
+        let candidateIndices = [highest, 0, points.count / 2]
+        var samples: [CLLocation] = []
+
+        for index in candidateIndices {
+            let point = points[index]
+
+            let location: CLLocation
+            if let altitude = point.altitude,
+               altitude.isFinite {
+                location = CLLocation(
+                    coordinate: point.clLocationCoordinate,
+                    altitude: altitude,
+                    horizontalAccuracy: 1,
+                    verticalAccuracy: 1,
+                    timestamp: Date()
+                )
+            } else {
+                location = CLLocation(
+                    latitude: point.latitude,
+                    longitude: point.longitude
+                )
+            }
+
+            if samples.allSatisfy({
+                $0.distance(from: location) > 350
+            }) {
+                samples.append(location)
+            }
+        }
+
+        guard let first = samples.first else {
+            throw URLError(.badURL)
+        }
+
+        // The highest point gets priority. Other points enrich the forecast
+        // but their failure must not hide a usable primary forecast.
+        var forecasts = [try await forecast(at: first)]
+        for sample in samples.dropFirst() {
+            if let next = try? await forecast(at: sample) {
+                forecasts.append(next)
+            }
+        }
+
+        guard forecasts.count > 1 else {
+            return forecasts[0]
+        }
+
+        let firstForecast = forecasts[0]
+        let indexes = forecasts.dropFirst().map { forecast in
+            Dictionary(
+                uniqueKeysWithValues: forecast.hourly.map {
+                    ($0.rawTime, $0)
+                }
+            )
+        }
+
+        let mergedHours = firstForecast.hourly.map { reference in
+            let values = [reference] + indexes.compactMap {
+                $0[reference.rawTime]
+            }
+
+            let levels = values.compactMap { value -> (
+                wind: Double,
+                altitude: Double
+            )? in
+                guard
+                    let wind = value.windAloftKPH,
+                    let altitude = value.windAloftAltitudeMeters
+                else { return nil }
+                return (wind, altitude)
+            }
+            let highestWind = levels.max { $0.wind < $1.wind }
+
+            let daylight = values.compactMap(\.isDaylight)
+
+            return HourlyWeather(
+                id: reference.id,
+                rawTime: reference.rawTime,
+                timeLabel: reference.timeLabel,
+                temperatureCelsius:
+                    values.map(\.temperatureCelsius).min() ??
+                    reference.temperatureCelsius,
+                precipitationProbability:
+                    values.map(\.precipitationProbability).max() ??
+                    reference.precipitationProbability,
+                precipitationMM:
+                    values.map(\.precipitationMM).max() ??
+                    reference.precipitationMM,
+                windSpeedKPH:
+                    values.map(\.windSpeedKPH).max() ??
+                    reference.windSpeedKPH,
+                windGustKPH:
+                    values.map(\.windGustKPH).max() ??
+                    reference.windGustKPH,
+                weatherCode:
+                    values.map(\.weatherCode).max {
+                        weatherSeverity($0) < weatherSeverity($1)
+                    } ?? reference.weatherCode,
+                visibilityMeters:
+                    values.compactMap(\.visibilityMeters).min(),
+                freezingLevelMeters:
+                    values.compactMap(\.freezingLevelMeters).min(),
+                isDaylight: daylight.isEmpty
+                    ? nil : daylight.allSatisfy { $0 },
+                windAloftKPH: highestWind?.wind,
+                windAloftAltitudeMeters: highestWind?.altitude
+            )
+        }
+
+        return WeatherForecast(
+            current: firstForecast.current,
+            hourly: mergedHours,
+            daily: firstForecast.daily,
+            latitude: firstForecast.latitude,
+            longitude: firstForecast.longitude,
+            timezone: firstForecast.timezone,
+            samplingPointCount: forecasts.count
+        )
+    }
+
+    private func weatherSeverity(_ code: Int) -> Int {
+        switch code {
+        case 95...99: return 100
+        case 71...77, 85...86: return 80
+        case 61...67, 80...82: return 70
+        case 45, 48: return 60
+        case 51...57: return 50
+        default: return code
+        }
     }
 
     func forecast(at location: CLLocation) async throws -> WeatherForecast {
