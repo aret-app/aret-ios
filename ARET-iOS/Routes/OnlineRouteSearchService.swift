@@ -161,7 +161,9 @@ final class OnlineRouteSearchService {
         guard
             let raw = way.geometry,
             raw.count >= 2,
-            let tags = way.tags
+            let tags = way.tags,
+            tags["highway"] == "via_ferrata" ||
+                tags["via_ferrata_scale"] != nil
         else { return nil }
 
         let points = raw.compactMap { point -> ARETCoordinate? in
@@ -278,30 +280,43 @@ final class OnlineRouteSearchService {
         // endpoint chaining is a safe beta approximation: reject gaps,
         // branches or incomplete relations rather than joining by straight
         // lines through cliffs, private land or exposed terrain.
-        let segments = members.compactMap { member -> [ARETCoordinate]? in
+        let routeWays = members.filter { $0.type == "way" }
+        guard !routeWays.isEmpty else { return nil }
+
+        var segments: [[ARETCoordinate]] = []
+        segments.reserveCapacity(routeWays.count)
+
+        for member in routeWays {
             guard
-                member.type == "way",
                 let geometry = member.geometry,
                 geometry.count >= 2
-            else { return nil }
+            else {
+                // Never treat an incomplete OSM relation as a whole
+                // navigable track when a member geometry is missing.
+                return nil
+            }
 
-            var points = geometry.compactMap { point -> ARETCoordinate? in
+            var points: [ARETCoordinate] = []
+            for point in geometry {
                 guard
                     (-90...90).contains(point.lat),
-                    (-180...180).contains(point.lon)
+                    (-180...180).contains(point.lon),
+                    point.lat.isFinite,
+                    point.lon.isFinite
                 else { return nil }
 
-                return ARETCoordinate(
-                    latitude: point.lat,
-                    longitude: point.lon
+                points.append(
+                    ARETCoordinate(
+                        latitude: point.lat,
+                        longitude: point.lon
+                    )
                 )
             }
 
-            guard points.count >= 2 else { return nil }
             if member.role == "backward" {
                 points.reverse()
             }
-            return points
+            segments.append(points)
         }
 
         guard
