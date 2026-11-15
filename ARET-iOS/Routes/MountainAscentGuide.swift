@@ -44,11 +44,11 @@ enum MountainAscentLibrary {
             summit: "Monte Procinto",
             title: "Ferrata Aristide Bruni (via d'accesso alla vetta)",
             discipline: .ferrata,
-            documentedDifficulty: "Ferrata • CAI: Facile (ma verticale ed esposta)",
-            itinerary: "Da Stazzema, sentiero CAI 5, Rifugio Forte dei Marmi, Cintura del Procinto e ferrata fino alla sommità. È l'accesso più agevole documentato alla cima, non un sentiero escursionistico.",
+            documentedDifficulty: "EEA · CAI 115A (ferrata attrezzata)",
+            itinerary: "Da Stazzema, accesso dalla zona del Rifugio Forte dei Marmi, Cintura del Procinto e ferrata fino alla sommità. Il collegamento è censito come CAI 115A (ex sentiero 5). È l'accesso più agevole documentato alla cima, non un sentiero escursionistico.",
             caution: "Ferrata tecnica ed esposta: servono attrezzatura omologata, competenze adeguate e verifica di condizioni e percorribilità. La discesa può comportare il ripercorrere la ferrata.",
-            sourceName: "Archivio Club Alpino Italiano — Ferrata del Procinto",
-            sourceURL: URL(string: "https://archivio.cai.it/wp-content/uploads/2024/03/2024_04_07-Ferrata-Procinto.pdf")!,
+            sourceName: "CAI Toscana — elenco sentieri 2025, percorso 115A",
+            sourceURL: URL(string: "https://organizzazione.cai.it/gr-toscana/wp-content/uploads/sites/66/2025/10/Sentieri-CAI-ufficiale-21-10-2025.pdf")!,
             searchTerms: ["procinto", "aristide bruni", "ferrata bruni", "ferrata del procinto"]
         ),
         MountainAscentGuide(
