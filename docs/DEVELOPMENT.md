@@ -186,3 +186,10 @@ production Swift files also passed frontend syntax parsing after correcting
 pre-existing range/closure syntax in Watch, Live Activity and RoutePlanningView.
 This is NOT Xcode SDK type checking, an iOS/watchOS build or a device test.
 Xcode compilation and the physical-device scenarios remain outstanding.
+
+## PR del precedente repository
+
+La [mappa del trasferimento](REPOSITORY_MIGRATION.md) collega i numeri delle
+vecchie PR alle nuove bozze in aret-app/aret-ios. Consultarla prima di
+interpretare i riferimenti nei documenti di sessione del catalogo. Nuove
+modifiche e review vanno eseguite nel repository dell'organizzazione.
