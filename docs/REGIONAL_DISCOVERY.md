@@ -114,8 +114,9 @@ confirm licensing of any external topo/guide content.
 
 ## Source-backed textual ascents
 
-`MountainAscentGuide.swift` currently includes **10 short source-backed
-textual descriptions of ascents across 8 mountains**.
+`MountainAscentGuide.swift` plus `ARETAdditionalAscentGuides.swift` now
+contain **21 short source-linked textual descriptions** across the two
+areas (not all entries reach their named summit).
 Apuane: Procinto (Ferrata Bruni), Pisanino (via normale and Bagola Bianca).
 Appennino: Monte Cusna (two options), Alpe di Succiso, Monte Orsaro,
 Monte Sillara, Pietra di Bismantova and Monte Acuto.
