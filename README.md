@@ -34,7 +34,10 @@ nella modalità *ARET Sentieri (beta)*.
 
 **Itinerari** → scorciatoie di vette, filtro geografico (entrambe/Apuane/
 Appennino), catalogo di cime `natural=peak` da OpenStreetMap, ricerca
-delle route relations e dei segmenti di ferrata effettivamente mappati.
+delle route relations e dei segmenti di ferrata effettivamente mappati,
+più i **singoli tratti di sentiero OSM** (`path/footway`) vicini alla
+vetta con difficoltà quando disponibile. Questi tratti NON sono
+automaticamente vie complete fino in cima.
 Schede descrittive con fonte per **Procinto, Pisanino, Cusna, Alpe di Succiso, Orsaro, Sillara, Pietra di Bismantova e Monte Acuto** (senza GPX garantiti).
 Importazione ed esportazione **GPX**, libreria percorsi personali.
 
@@ -99,6 +102,11 @@ mappe/meteo inviano comunque normali richieste HTTPS ai provider).
 
 Leggete per prima cosa [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 Per nuove funzioni usate un **branch dedicato + Pull Request**.
+Per un primo controllo di compilazione senza Mac è presente anche la
+GitHub Action manuale **ARET iOS simulator build (manual)** nella
+scheda Actions: non parte automaticamente e usa minuti macOS
+eventualmente fatturabili. Il build eseguito in CI non sostituisce
+prove su dispositivi fisici.
 Non fate modificare allo stesso tempo a due AI il medesimo file senza
 coordinamento: in particolare `RoutePlanningView.swift`,
 `OnlineRouteSearchService.swift`, `FieldWeatherService.swift` e
