@@ -117,15 +117,56 @@ confirm licensing of any external topo/guide content.
 `MountainAscentGuide.swift` plus `ARETAdditionalAscentGuides.swift` now
 contain **21 short source-linked textual descriptions** across the two
 areas (not all entries reach their named summit).
-Apuane: Procinto (Ferrata Bruni), Pisanino (via normale and Bagola Bianca).
-Appennino: Monte Cusna (two options), Alpe di Succiso, Monte Orsaro,
-Monte Sillara, Pietra di Bismantova and Monte Acuto.
+The original 10 cards covered Procinto/Pisanino (Apuane) and Cusna,
+Succiso, Orsaro, Sillara, Bismantova and Acuto (Appennino).
+The additional 11 cover Panie, Monte Forato (hiking and ferrata),
+Campocatino/San Viano (NOT Roccandagia summit), Monte Tondo,
+Pania di Corfino, Cisa/Prampa, Monte Vecchio, Vallestrina/Passone,
+Marmagna/Logarghena and a multi-stage Prado→Orsaro crossing.
+
+Some entries deliberately describe an outing **near** a mountain,
+rather than a confirmed summit ascent. Do not advertise them as
+complete peak routes.
 The Appennino pages link to official National Park itinerary pages;
 the stated T/T+/E/E+ labels are **the Park's classification of those
 specific proposals**, not an independent ARET difficulty certification.
 They are region-filtered and **none contains a verified full GPX**.
 Always check the original source for current closure, route changes
 or seasonal conditions. Human field verification remains outstanding.
+
+### Primary regional data registers
+
+As of the November 2026 research check, the Appennino National Park's
+[online trail network](https://www.parcoappennino.it/rete_sentieristica.php)
+lists **183 numbered trail records** with difficulty and status; its
+separate [walking itineraries index](https://www.parcoappennino.it/percorsi.piedi.php)
+lists **37 described excursions**. These lists are NOT the same thing
+and may change. ARET currently links to them but has not ingested
+and validated all their data.
+
+For the Apuane, the
+[CAI Toscana 2025 trail registry](https://organizzazione.cai.it/gr-toscana/wp-content/uploads/sites/66/2025/10/Sentieri-CAI-ufficiale-21-10-2025.pdf)
+includes many numbered path sections plus ferratas such as
+**Bruni 115A (EEA)** and **Renato Salvatori 110A (EEA/tratti EE)**.
+The [Parco Apuane](https://parcapuane.toscana.it/turismo/apuan_alps_cets_strategy_action_plan_2023_3.pdf)
+publishes classic itineraries and broader trail-network context.
+Some documents are historical and must not be treated as current
+walkability status; confirm modern route IDs and closures.
+
+**Data-rights requirement:** referencing official source links is not
+permission to bulk-copy third-party trail GPX, topo maps, long prose
+descriptions or databases. Obtain a permitted data feed or legal review
+before automated replication.
+
+### Coverage gap inventory
+
+[CATALOG_COVERAGE.csv](CATALOG_COVERAGE.csv) tracks the
+**48 quick-search names**, 21 linked guide entries associated with
+**19 of those names**, and **29 names without local curated source
+records**. It does not represent all geographic peaks or all routes.
+All `full_gpx_verified` values currently remain `no`.
+OSM discovery can still return nearby geometry, but a track
+appearing in results is not automatically a verified summit route.
 
 Expand carefully with an approved content workflow:
 1. Obtain explicit source and usage rights for description/photographs/
