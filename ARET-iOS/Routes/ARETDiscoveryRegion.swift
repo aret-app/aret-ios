@@ -108,6 +108,7 @@ enum ARETPilotRegion: String, CaseIterable, Identifiable, Sendable {
                 "Alpe di Succiso",
                 "Monte Marmagna",
                 "Monte Orsaro",
+                "Monte Sillara",
                 "Monte Ventasso",
                 "Monte la Nuda",
                 "Monte Giovo",
