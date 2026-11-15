@@ -33,7 +33,11 @@ final class OnlineRouteSearchService {
             in: .whitespacesAndNewlines
         )
         guard !trimmed.isEmpty else {
-            return MountainRouteSearchResult(routes: [], technicalSegments: [])
+            return MountainRouteSearchResult(
+                routes: [],
+                technicalSegments: [],
+                trailSegments: []
+            )
         }
 
         let center = try? await resolveCenter(
@@ -56,6 +60,8 @@ final class OnlineRouteSearchService {
                 ["highway"="via_ferrata"];
               way(around:5000,\(center.latitude),\(center.longitude))
                 ["via_ferrata_scale"];
+              way(around:2200,\(center.latitude),\(center.longitude))
+                ["highway"~"^(path|footway)$"];
             );
             out tags center geom;
             """
@@ -74,6 +80,8 @@ final class OnlineRouteSearchService {
                 way["highway"="via_ferrata"]
                   ["name"~"\(pattern)",i](\(bbox));
                 way["via_ferrata_scale"]
+                  ["name"~"\(pattern)",i](\(bbox));
+                way["highway"~"^(path|footway)$"]
                   ["name"~"\(pattern)",i](\(bbox));
                 """
             }.joined(separator: "\n")
@@ -146,11 +154,107 @@ final class OnlineRouteSearchService {
             .compactMap { mapTechnicalSegment($0, scope: scope) }
             .sorted { $0.name < $1.name }
 
-        // Both whole route relations and isolated ferrata sections are
-        // displayed, with different labels and NO invented connectors.
+        let mappedTrails = decoded.elements
+            .filter { $0.type == "way" }
+            .compactMap {
+                mapTrailSegment(
+                    $0,
+                    scope: scope,
+                    center: center
+                )
+            }
+            .sorted {
+                if $0.hasName != $1.hasName {
+                    return $0.hasName && !$1.hasName
+                }
+                return $0.nearestDistance < $1.nearestDistance
+            }
+
+        // A peak, a full hiking relation, a ferrata way and a generic
+        // OSM path way must always remain different concepts.
         return MountainRouteSearchResult(
             routes: results.map(\.route),
-            technicalSegments: Array(technicalSegments.prefix(15))
+            technicalSegments: Array(technicalSegments.prefix(15)),
+            trailSegments: Array(mappedTrails.prefix(40).map(\.segment))
+        )
+    }
+
+    private func mapTrailSegment(
+        _ way: OverpassElement,
+        scope: ARETDiscoveryScope,
+        center: CLLocationCoordinate2D?
+    ) -> MappedTrailSegment? {
+        guard
+            let tags = way.tags,
+            ["path", "footway"].contains(tags["highway"] ?? ""),
+            tags["via_ferrata_scale"] == nil,
+            let raw = way.geometry,
+            raw.count >= 2
+        else { return nil }
+
+        var points: [ARETCoordinate] = []
+        for p in raw {
+            guard
+                (-90...90).contains(p.lat),
+                (-180...180).contains(p.lon),
+                p.lat.isFinite,
+                p.lon.isFinite
+            else { return nil }
+
+            points.append(
+                ARETCoordinate(latitude: p.lat, longitude: p.lon)
+            )
+        }
+
+        guard points.contains(where: {
+            scope.contains($0.clLocationCoordinate)
+        }) else { return nil }
+
+        let distance: Double
+        if let center {
+            let target = CLLocation(
+                latitude: center.latitude,
+                longitude: center.longitude
+            )
+            distance = points.map {
+                CLLocation(
+                    latitude: $0.latitude,
+                    longitude: $0.longitude
+                ).distance(from: target)
+            }.min() ?? .greatestFiniteMagnitude
+
+            guard distance <= 2_200 else { return nil }
+        } else {
+            distance = 0
+        }
+
+        let title = tags["name:it"] ?? tags["name"]
+            ?? tags["ref"].map { "Sentiero \($0)" }
+            ?? "Tratto di sentiero senza nome"
+
+        let grade = tags["sac_scale"].map {
+            "sac_scale=\($0) · OSM"
+        } ?? tags["cai_scale"].map {
+            "cai_scale=\($0) · OSM"
+        } ?? "Difficoltà non indicata su OSM"
+
+        let segment = OSMTrailSegment(
+            id: "osm-path-way-\(way.id)",
+            name: title,
+            reference: tags["ref"],
+            grade: grade,
+            points: points,
+            sourceURL: URL(
+                string: "https://www.openstreetmap.org/way/\(way.id)"
+            )!
+        )
+
+        return MappedTrailSegment(
+            segment: segment,
+            nearestDistance: distance,
+            hasName: tags["name"] != nil ||
+                tags["name:it"] != nil ||
+                tags["ref"] != nil
         )
     }
 
@@ -508,6 +612,22 @@ final class OnlineRouteSearchService {
 struct MountainRouteSearchResult {
     let routes: [RouteLibraryItem]
     let technicalSegments: [OSMTechnicalSegment]
+    let trailSegments: [OSMTrailSegment]
+}
+
+struct OSMTrailSegment: Identifiable, Hashable {
+    let id: String
+    let name: String
+    let reference: String?
+    let grade: String
+    let points: [ARETCoordinate]
+    let sourceURL: URL
+}
+
+private struct MappedTrailSegment {
+    let segment: OSMTrailSegment
+    let nearestDistance: Double
+    let hasName: Bool
 }
 
 struct OSMTechnicalSegment: Identifiable, Hashable {
