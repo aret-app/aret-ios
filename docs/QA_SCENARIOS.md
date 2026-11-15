@@ -20,6 +20,21 @@ screenshots, and any failure in the PR/issue.
 
 ## Regional summit discovery
 
+- [ ] Validate the 11 additional sourced guides in
+      `ARETAdditionalAscentGuides.swift` against their current Park pages
+      and local terrain; links are *informational*, not verified GPX.
+- [ ] Search Monte Forato: anello E versus Renato Salvatori ferrata;
+      do not label ferrata as ordinary hiking.
+- [ ] Search Pania della Croce and Campocatino: nearby/group outing
+      must not imply guaranteed summit ascent.
+- [ ] Search Prado: official source covers multi-day traverse, not a
+      single-day loop; don't suggest one-day navigation.
+- [ ] Search Monte Tondo, Pania di Corfino, Cisa/Prampa, Marmagna and
+      Vallestrina: show sources, risks and uncertainty.
+- [ ] Ensure official Park index links open and surface updates/status;
+      no copying proprietary GPX without licence.
+- [ ] Cross-check `docs/CATALOG_COVERAGE.csv` after each new guide.
+
 | Search / action | Expected behavior |
 | --- | --- |
 | Scope **Entrambe** | Apuane + Appennino featured peaks, OSM index request |
