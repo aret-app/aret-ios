@@ -39,6 +39,50 @@ Climbing and alpinism will add detail without burdening the hiking flow.
 - [x] **One-tap online discovery** rather than requiring keyboard submit.
 - [x] Topographic map by default; first GPS fix recenters the map.
 
+## P0 — Regional discovery (new pilot scope, November 2026)
+
+**Geographic target: Alpi Apuane + Appennino tosco-emiliano.**
+
+- [x] Scope picker: both mountain ranges / Apuane / Appennino.
+- [x] Search shortcuts for dozens of named summits across both ranges.
+  These are **names only**, not routes and not difficulty assessments.
+- [x] Browse OpenStreetMap `natural=peak` in two coarse bounded areas.
+  Cache results in memory for 6h, with visible partial API failure.
+- [x] Choose an exact OSM peak to search nearby routes rather than
+  relying only on potentially ambiguous MapKit geocoding.
+- [x] Fallback search by mapped relation/way name inside pilot region
+  when the via name cannot be geocoded.
+- [x] Hiking/ferrata OSM relations only displayed when required way
+  geometry exists and joins continuously; standalone technical sections
+  remain visibly separate from full routes.
+- [x] Source-backed prose guides for Procinto Ferrata Bruni,
+  Pisanino normal route, Pisanino Bagola Bianca.
+- [x] Show OSM `sac_scale` / `via_ferrata_scale` only if tags exist,
+  never invent a route grade from altitude or nearby proximity.
+
+**Important next steps (NOT yet completed):**
+
+- [ ] Production-grade complete **verified** ascent catalogue for
+  all relevant peaks, including summit reach, approach and descent.
+- [ ] Ingest official/legal GPS tracks or curated community contributions
+  with licence and verification date.
+- [ ] Aggregate hardest `sac_scale` from actual way members of each
+  OSM relation; current relation-level tags can be incomplete.
+- [ ] Better geospatial pilot boundary polygons and disambiguation of
+  mountains with duplicate names.
+- [ ] Cache/query Overpass data via our own backend to avoid public API
+  saturation; respect load and licensing.
+- [ ] Build automated and human regional QA coverage metrics.
+- [ ] Validate build on Xcode/iPhone and end-to-end search with limited
+  connectivity.
+
+For product explanation and AI collaboration:
+[PRODUCT_AND_STATUS.md](PRODUCT_AND_STATUS.md),
+[REGIONAL_DISCOVERY.md](REGIONAL_DISCOVERY.md),
+[ARCHITECTURE.md](ARCHITECTURE.md),
+[DEVELOPMENT.md](DEVELOPMENT.md),
+[QA_SCENARIOS.md](QA_SCENARIOS.md).
+
 ## Priority P0 — ARET Mountain Weather
 
 The route forecast must be useful for a **real departure decision**, rather
@@ -164,8 +208,10 @@ coordinates; the basemap tiles still need a separately licenced offline pack.
 
 ## V0.3 — maps we can control
 
-- [ ] Compare **MapLibre Native** with existing MapKit in a prototype,
-  keeping the current map working as a fallback.
+- [x] Add an opt-in **MapLibre / OpenFreeMap Liberty** online beta
+  alongside MapKit.
+- [ ] Complete side-by-side comparison and rendering validation on
+  actual iPhone/Watch field devices.
 - [ ] OpenStreetMap vector base map with clear paths, summits, refuges,
   contour lines, attribution and our custom ARET style.
 - [ ] Evaluate DEM/raster terrain tile license, availability, quality,
