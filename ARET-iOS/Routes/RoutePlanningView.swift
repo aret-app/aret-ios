@@ -408,6 +408,7 @@ struct RoutePlanningView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 routeHeader
+                planningControls
 
                 if plannedRoute.origin == .openStreetMap &&
                    plannedRoute.kind == .alpine {
@@ -419,9 +420,6 @@ struct RoutePlanningView: View {
                     .foregroundStyle(.orange)
                     .aretGlassCard(cornerRadius: 16, padding: 13)
                 }
-
-                HikingRoutePreview(route: plannedRoute)
-                planningControls
 
                 if let forecast {
                     plannedDayWeather(forecast)
@@ -466,6 +464,8 @@ struct RoutePlanningView: View {
                         .buttonStyle(.bordered)
                     }
                 }
+
+                HikingRoutePreview(route: plannedRoute)
 
                 levelCompatibilitySection
 
