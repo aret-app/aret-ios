@@ -467,6 +467,23 @@ struct RoutePlannerSearchView: View {
                 }
             }
 
+            Section {
+                ARETOfficialRegionalSourcesView(
+                    scope: discoveryScope
+                )
+                .listRowInsets(
+                    EdgeInsets(
+                        top: 7,
+                        leading: 12,
+                        bottom: 7,
+                        trailing: 12
+                    )
+                )
+                .listRowBackground(Color.clear)
+            } header: {
+                Text("Cataloghi e bollettini territoriali")
+            }
+
             if !searchText.isEmpty &&
                localRoutes.isEmpty &&
                onlineRoutes.isEmpty &&
