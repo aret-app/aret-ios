@@ -545,10 +545,8 @@ struct WeatherView: View {
                     routeKind: route.kind
                 )
 
-        return VStack(
-            alignment: .leading,
-            spacing: 12
-        ) {
+        return VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 12) {
             HStack {
                 VStack(
                     alignment: .leading,
