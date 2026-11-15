@@ -15,6 +15,10 @@ final class LocationManager: NSObject, ObservableObject {
     @Published private(set) var maximumSpeedMPS: Double = 0
     @Published private(set) var trackingStartedAt: Date?
 
+    @Published private(set) var hasIncompleteRecording = false
+    @Published var recordingError: String?
+    private let journal = RecordingJournal()
+    private var pendingPoints: [RecordedTrackPoint] = []
     private let manager = CLLocationManager()
 
     private var lastRecordedLocation: CLLocation?
@@ -23,6 +27,7 @@ final class LocationManager: NSObject, ObservableObject {
     override init() {
         super.init()
 
+        hasIncompleteRecording = journal.exists
         manager.delegate = self
         manager.activityType = .fitness
 
@@ -57,6 +62,17 @@ final class LocationManager: NSObject, ObservableObject {
         name: String = "Attività ARET"
     ) {
         guard !isTracking else { return }
+        guard !journal.exists else {
+            hasIncompleteRecording = true
+            return
+        }
+        do {
+            try journal.begin(name: name, startedAt: Date())
+        } catch {
+            hasIncompleteRecording = journal.exists
+            recordingError = "Impossibile avviare il salvataggio GPS: \(error.localizedDescription)"
+            return
+        }
 
         recordedLocations.removeAll(keepingCapacity: true)
         distanceMeters = 0
@@ -110,37 +126,78 @@ final class LocationManager: NSObject, ObservableObject {
                 altitudeMeters: location?.altitude
             )
 
-        defer {
+        do {
+            try flushPendingPoints()
+            guard !recordedLocations.isEmpty else {
+                try journal.remove()
+                trackingStartedAt = nil
+                return nil
+            }
+            let (header, _) = try journal.read()
+            let filename = try saveRecordedTrackAsGPX(locations: recordedLocations, name: name, id: header.id)
+            let activity = RecordedActivity(
+                id: header.id, name: name, startedAt: startedAt, endedAt: endedAt,
+                points: recordedLocations.map(RecordedTrackPoint.init(location:)),
+                stats: .calculate(locations: recordedLocations, startedAt: startedAt, endedAt: endedAt),
+                sourceRouteID: sourceRouteID, gpxFilename: filename
+            )
+            hasIncompleteRecording = true
+            return activity
+        } catch {
+            hasIncompleteRecording = true
+            recordingError = "Salvataggio incompleto. I punti restano recuperabili: \(error.localizedDescription)"
+            return nil
+        }
+    }
+
+    private func flushPendingPoints() throws {
+        while let point = pendingPoints.first {
+            try journal.append(point)
+            pendingPoints.removeFirst()
+        }
+    }
+
+    func recoverRecording() -> RecordedActivity? {
+        guard !isTracking else { return nil }
+        do {
+            try flushPendingPoints()
+            let (header, points) = try journal.read()
+            guard !points.isEmpty else {
+                recordingError = "La registrazione non contiene punti GPS recuperabili. I file sono conservati."
+                return nil
+            }
+            let locations = points.map(\.location)
+            let endedAt = points.last!.timestamp
+            let filename = try saveRecordedTrackAsGPX(locations: locations, name: header.name, id: header.id)
+            return RecordedActivity(
+                id: header.id, name: header.name, startedAt: header.startedAt, endedAt: endedAt,
+                points: points,
+                stats: .calculate(locations: locations, startedAt: header.startedAt, endedAt: endedAt),
+                gpxFilename: filename
+            )
+        } catch {
+            recordingError = "Recupero non riuscito; file conservati: \(error.localizedDescription)"
+            return nil
+        }
+    }
+
+    // Called only after ActivityStore confirms the durable activity write.
+    func confirmRecordingSaved() {
+        do {
+            try journal.remove()
+            hasIncompleteRecording = false
+            recordedLocations.removeAll()
             trackingStartedAt = nil
             lastRecordedLocation = nil
             elevationReference = nil
-
-            // A completed activity must not remain painted on the live map.
-            recordedLocations.removeAll()
             distanceMeters = 0
             positiveElevationMeters = 0
             negativeElevationMeters = 0
             currentSpeedMPS = 0
             maximumSpeedMPS = 0
+        } catch {
+            recordingError = "Attività salvata; pulizia registrazione da riprovare: \(error.localizedDescription)"
         }
-
-        guard recordedLocations.count > 1 else {
-            return nil
-        }
-
-        let filename = try? saveRecordedTrackAsGPX(
-            locations: recordedLocations,
-            name: name
-        )
-
-        return RecordedActivity.make(
-            name: name,
-            startedAt: startedAt,
-            endedAt: endedAt,
-            locations: recordedLocations,
-            sourceRouteID: sourceRouteID,
-            gpxFilename: filename
-        )
     }
 
     private func acceptRecordedLocation(_ candidate: CLLocation) {
@@ -201,6 +258,12 @@ final class LocationManager: NSObject, ObservableObject {
             }
         }
 
+        pendingPoints.append(RecordedTrackPoint(location: candidate))
+        do {
+            try flushPendingPoints()
+        } catch {
+            recordingError = "Salvataggio GPS sospeso; nuovo tentativo al prossimo punto: \(error.localizedDescription)"
+        }
         recordedLocations.append(candidate)
         lastRecordedLocation = candidate
 
@@ -215,7 +278,8 @@ final class LocationManager: NSObject, ObservableObject {
 
     private func saveRecordedTrackAsGPX(
         locations: [CLLocation],
-        name: String
+        name: String,
+        id: UUID
     ) throws -> String {
         let formatter = ISO8601DateFormatter()
 
@@ -256,7 +320,7 @@ final class LocationManager: NSObject, ObservableObject {
             in: .userDomainMask
         )[0]
 
-        let filename = "ARET_\(UUID().uuidString).gpx"
+        let filename = "ARET_\(id.uuidString).gpx"
         let url = directory.appendingPathComponent(filename)
 
         guard let data = gpx.data(using: .utf8) else {
