@@ -17,6 +17,22 @@ This beta currently uses **Apple MapKit**. A genuinely custom
 OpenStreetMap / MapLibre topographic layer and downloadable offline
 maps are planned, **not yet implemented**.
 
+## Hiking weather and trail downloads
+
+ARET now processes hourly daylight, visibility, freezing-level height and
+pressure-level wind data in addition to precipitation/ground-level gusts.
+The itinerary and Weather screens present a **conservative, explainable**
+assessment and forecast windows; this is *not* a mountaineering safety
+certification or an authoritative go/no-go order.
+
+Discovered public hiking itineraries with valid geometries can be exported
+as GPX locally via the share sheet. Saving/exporting a GPX **does not**
+download the underlying terrain/map imagery. Full OpenStreetMap-based
+hiking layers and offline map-region downloads are planned for V0.3,
+subject to tile-provider permissions and data-quality validation.
+
+See [Hiking roadmap](docs/HIKING_PLAN.md) for the staged plan and field tests.
+
 ## Field Test 0.1
 
 The first field build is intentionally narrow:
