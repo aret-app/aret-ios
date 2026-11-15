@@ -113,9 +113,10 @@ enum WeatherWindowEngine {
             .sorted(by: { $0.score > $1.score })
             .prefix(4)
 
-        let explanation = summarizedReasons(
-            from: mostRelevant.flatMap(\.reasons)
-        )
+        let warningReasons = mostRelevant.flatMap(\.reasons)
+        let explanation = warningReasons.isEmpty
+            ? ["Non risultano almeno due ore di condizioni continuativamente favorevoli."]
+            : summarizedReasons(from: warningReasons)
 
         return WeatherWindow(
             quality: .noClearWindow,
