@@ -13,6 +13,15 @@ struct RoutePlannerSearchView: View {
     @EnvironmentObject private var routeLibrary: RouteLibraryStore
 
     @State private var searchText = ""
+    @State private var discoveryScope: ARETDiscoveryScope = .both
+    @State private var regionPeaks: [ARETPeak] = []
+    @State private var selectedSummit: ARETPeak?
+    @State private var isLoadingPeaks = false
+    @State private var failedPeakRegions: [ARETPilotRegion] = []
+    @State private var showAllShortcuts = false
+    @State private var showSummitDirectory = false
+    @State private var visibleSummitCount = 35
+    @State private var activeSearchID = UUID()
     @State private var onlineRoutes: [RouteLibraryItem] = []
     @State private var technicalSegments: [OSMTechnicalSegment] = []
     @State private var isSearchingOnline = false
@@ -20,6 +29,43 @@ struct RoutePlannerSearchView: View {
 
     private var ascentGuides: [MountainAscentGuide] {
         MountainAscentLibrary.results(for: searchText)
+    }
+
+    private var suggestedSummits: [String] {
+        // Alternate between the two mountain ranges in the welcome view.
+        let groups = discoveryScope.regions.map(\.suggestedSummits)
+        guard groups.count > 1 else { return groups.first ?? [] }
+
+        let maxCount = groups.map(\.count).max() ?? 0
+        var result: [String] = []
+        for index in 0..<maxCount {
+            for group in groups where index < group.count {
+                result.append(group[index])
+            }
+        }
+        return result
+    }
+
+    private var matchingPeaks: [ARETPeak] {
+        let trimmed = searchText.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+        let filtered = regionPeaks.filter {
+            discoveryScope.regions.contains($0.region)
+        }
+
+        if trimmed.isEmpty {
+            return filtered.sorted {
+                ($0.elevationMeters ?? 0) > ($1.elevationMeters ?? 0)
+            }
+        }
+
+        return filtered.filter {
+            $0.name.localizedStandardContains(trimmed)
+        }
+        .sorted {
+            $0.name.localizedStandardCompare($1.name) == .orderedAscending
+        }
     }
 
     private var localRoutes: [RouteLibraryItem] {
@@ -48,6 +94,34 @@ struct RoutePlannerSearchView: View {
 
     var body: some View {
         List {
+            Section {
+                Picker("Area pilota", selection: $discoveryScope) {
+                    ForEach(ARETDiscoveryScope.allCases) { scope in
+                        Text(scope.shortName).tag(scope)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                HStack(alignment: .top, spacing: 9) {
+                    Image(systemName: "mountain.2.fill")
+                        .foregroundStyle(.aretOrange)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("ARET · Apuane e Appennino tosco-emiliano")
+                            .font(.subheadline.weight(.semibold))
+
+                        Text(
+                            "Ricerca limitata alle nostre due aree pilota. Le aree cartografiche sono approssimative; la disponibilità delle tracce dipende dai dati OpenStreetMap."
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.vertical, 5)
+            } header: {
+                Text("Dove cerchiamo")
+            }
+
             if searchText.trimmingCharacters(
                 in: .whitespacesAndNewlines
             ).isEmpty {
@@ -55,29 +129,165 @@ struct RoutePlannerSearchView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         ARETWordmark()
 
-                        Text("Dove vuoi salire?")
+                        Text("Qual è la prossima vetta?")
                             .font(.title2.weight(.bold))
 
                         Text(
-                            "Cerca una vetta oppure una via. ARET distingue escursioni, vie ferrate e itinerari tecnici; ti mostra le fonti e, dove esiste, la traccia GPS."
+                            "Cerca una montagna oppure il nome di una via. Le cime sono punti di ricerca, non tracce: ARET mostrerà i percorsi OSM esistenti e le schede tecniche documentate."
                         )
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
 
-                        HStack(spacing: 10) {
-                            Button("Monte Procinto") {
-                                searchText = "Monte Procinto"
-                            }
-                            Button("Monte Pisanino") {
-                                searchText = "Monte Pisanino"
+                        LazyVGrid(
+                            columns: [
+                                GridItem(.flexible()),
+                                GridItem(.flexible())
+                            ],
+                            alignment: .leading,
+                            spacing: 8
+                        ) {
+                            ForEach(
+                                Array(
+                                    suggestedSummits.prefix(
+                                        showAllShortcuts
+                                            ? suggestedSummits.count
+                                            : 12
+                                    )
+                                ),
+                                id: \.self
+                            ) { summitName in
+                                Button {
+                                    selectSummit(named: summitName)
+                                } label: {
+                                    HStack(spacing: 5) {
+                                        Image(systemName: "mountain.2")
+                                            .foregroundStyle(.aretOrange)
+                                        Text(summitName)
+                                            .lineLimit(2)
+                                            .minimumScaleFactor(0.78)
+                                        Spacer(minLength: 0)
+                                    }
+                                    .font(.caption.weight(.semibold))
+                                    .frame(
+                                        maxWidth: .infinity,
+                                        minHeight: 36,
+                                        alignment: .leading
+                                    )
+                                }
+                                .buttonStyle(.bordered)
+                                .tint(.white)
                             }
                         }
-                        .buttonStyle(.bordered)
-                        .tint(.aretOrange)
-                        .font(.caption.weight(.semibold))
+
+                        if suggestedSummits.count > 12 {
+                            Button {
+                                showAllShortcuts.toggle()
+                            } label: {
+                                Label(
+                                    showAllShortcuts
+                                        ? "Mostra meno cime"
+                                        : "Mostra tutte le cime suggerite",
+                                    systemImage:
+                                        showAllShortcuts ? "chevron.up" : "chevron.down"
+                                )
+                            }
+                            .font(.caption.weight(.semibold))
+                            .tint(.aretOrange)
+                        }
                     }
                     .padding(.vertical, 8)
+                } header: {
+                    Text("Parti da una vetta")
                 }
+            }
+
+            Section {
+                HStack {
+                    Label(
+                        "Vette OpenStreetMap",
+                        systemImage: "mappin.and.ellipse"
+                    )
+                    .font(.subheadline.weight(.semibold))
+
+                    Spacer()
+
+                    if isLoadingPeaks {
+                        ProgressView()
+                    } else {
+                        Text("\(matchingPeaks.count)")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                if !failedPeakRegions.isEmpty {
+                    Text(
+                        "Catalogo OSM temporaneamente incompleto: puoi usare le cime suggerite e riprovare più tardi."
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+
+                    Button("Riprova caricamento") {
+                        Task { await loadRegionPeaks() }
+                    }
+                    .font(.caption.weight(.semibold))
+                }
+
+                if !searchText.isEmpty || showSummitDirectory {
+                    if matchingPeaks.isEmpty && !isLoadingPeaks {
+                        Text(
+                            "Nessuna vetta OSM con questo nome nell'area selezionata. Prova comunque la ricerca online delle vie."
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+
+                    ForEach(
+                        Array(matchingPeaks.prefix(visibleSummitCount))
+                    ) { peak in
+                        Button {
+                            selectSummit(named: peak.name, peak: peak)
+                        } label: {
+                            HStack(spacing: 9) {
+                                Image(systemName: "mountain.2.fill")
+                                    .foregroundStyle(.aretOrange)
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(peak.name)
+                                        .font(.subheadline.weight(.semibold))
+                                    Text(peak.subtitle)
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    if matchingPeaks.count > visibleSummitCount {
+                        Button("Mostra altre vette") {
+                            visibleSummitCount += 35
+                        }
+                        .font(.caption.weight(.semibold))
+                    }
+                } else {
+                    Button {
+                        showSummitDirectory = true
+                    } label: {
+                        Label(
+                            "Sfoglia le vette della zona",
+                            systemImage: "list.bullet"
+                        )
+                    }
+                    .font(.subheadline)
+                }
+            } footer: {
+                Text(
+                    "Cime e quote arrivano dai tag OpenStreetMap, non da una verifica ARET. Il catalogo si aggiorna online e può avere nomi mancanti o duplicati."
+                )
             }
 
             if !ascentGuides.isEmpty {
@@ -258,12 +468,51 @@ struct RoutePlannerSearchView: View {
                 await searchOnline()
             }
         }
-        .onChange(of: searchText) {
-            _, _ in
+        .onChange(of: searchText) { _, newValue in
+            activeSearchID = UUID()
             onlineRoutes = []
             technicalSegments = []
             onlineError = nil
+
+            if selectedSummit?.name != newValue {
+                selectedSummit = nil
+            }
         }
+        .onChange(of: discoveryScope) { _, _ in
+            activeSearchID = UUID()
+            selectedSummit = nil
+            onlineRoutes = []
+            technicalSegments = []
+            onlineError = nil
+            visibleSummitCount = 35
+            showSummitDirectory = false
+        }
+        .task(id: discoveryScope) {
+            await loadRegionPeaks()
+        }
+    }
+
+    @MainActor
+    private func loadRegionPeaks() async {
+        isLoadingPeaks = true
+        let requestedScope = discoveryScope
+        let result = await ARETPeakDiscoveryService.shared.load(
+            scope: requestedScope
+        )
+        guard requestedScope == discoveryScope else { return }
+        regionPeaks = result.peaks
+        failedPeakRegions = result.failedRegions
+        isLoadingPeaks = false
+    }
+
+    @MainActor
+    private func selectSummit(
+        named name: String,
+        peak: ARETPeak? = nil
+    ) {
+        selectedSummit = peak
+        searchText = name
+        Task { await searchOnline() }
     }
 
     private func plannerRouteRow(
@@ -339,23 +588,36 @@ struct RoutePlannerSearchView: View {
             return
         }
 
+        let requestID = UUID()
+        activeSearchID = requestID
         isSearchingOnline = true
         onlineError = nil
         onlineRoutes = []
         technicalSegments = []
+        let scope = discoveryScope
+        let selected = selectedSummit
 
         do {
             let result = try await OnlineRouteSearchService
                 .shared
-                .discover(query: trimmed)
+                .discover(
+                    query: trimmed,
+                    scope: scope,
+                    summit: selected
+                )
+
+            // Discard older responses after scope/query changes.
+            guard activeSearchID == requestID else { return }
+
             onlineRoutes = result.routes
             technicalSegments = result.technicalSegments
 
             if onlineRoutes.isEmpty && technicalSegments.isEmpty {
                 onlineError =
-                    "Nessuna traccia OSM utilizzabile trovata vicino alla località. La copertura OpenStreetMap può essere incompleta: consulta le vie documentate."
+                    "Nessuna traccia OSM utilizzabile trovata in quest'area. Il catalogo delle vette NON garantisce la presenza delle vie di salita: consulta fonti ufficiali prima di partire."
             }
         } catch {
+            guard activeSearchID == requestID else { return }
             onlineError =
                 "Ricerca online non riuscita: \(error.localizedDescription)"
         }
