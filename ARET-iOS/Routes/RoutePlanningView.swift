@@ -17,6 +17,10 @@ struct RoutePlannerSearchView: View {
     @State private var isSearchingOnline = false
     @State private var onlineError: String?
 
+    private var ascentGuides: [MountainAscentGuide] {
+        MountainAscentLibrary.results(for: searchText)
+    }
+
     private var localRoutes: [RouteLibraryItem] {
         let all =
             routeLibrary.catalogRoutes +
@@ -47,11 +51,52 @@ struct RoutePlannerSearchView: View {
                 in: .whitespacesAndNewlines
             ).isEmpty {
                 Section {
+                    VStack(alignment: .leading, spacing: 12) {
+                        ARETWordmark()
+
+                        Text("Dove vuoi salire?")
+                            .font(.title2.weight(.bold))
+
+                        Text(
+                            "Cerca una vetta oppure una via. ARET distingue escursioni, vie ferrate e itinerari tecnici; ti mostra le fonti e, dove esiste, la traccia GPS."
+                        )
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                        HStack(spacing: 10) {
+                            Button("Monte Procinto") {
+                                searchText = "Monte Procinto"
+                            }
+                            Button("Monte Pisanino") {
+                                searchText = "Monte Pisanino"
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.aretOrange)
+                        .font(.caption.weight(.semibold))
+                    }
+                    .padding(.vertical, 8)
+                }
+            }
+
+            if !ascentGuides.isEmpty {
+                Section {
+                    ForEach(ascentGuides) { guide in
+                        MountainAscentGuideCard(guide: guide)
+                            .listRowInsets(EdgeInsets(
+                                top: 7,
+                                leading: 12,
+                                bottom: 7,
+                                trailing: 12
+                            ))
+                            .listRowBackground(Color.clear)
+                    }
+                } header: {
+                    Text("Vie di salita documentate")
+                } footer: {
                     Text(
-                        "Scrivi una montagna, una località o il nome di un sentiero. ARET cerca prima nella tua libreria e, quando premi Cerca, anche tra i percorsi hiking aperti di OpenStreetMap."
+                        "Schede con fonti e difficoltà documentate, ma senza GPS fino a verifica della traccia completa. Le ferrate NON sono sentieri turistici."
                     )
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
                 }
             }
 
@@ -102,7 +147,7 @@ struct RoutePlannerSearchView: View {
             }
 
             if isSearchingOnline {
-                Section("Percorsi online") {
+                Section("Ricerca di tracce GPS in OpenStreetMap") {
                     HStack {
                         ProgressView()
                         Text(
@@ -123,10 +168,10 @@ struct RoutePlannerSearchView: View {
                         }
                     }
                 } header: {
-                    Text("Percorsi online")
+                    Text("Tracce OSM vicino alla località cercata")
                 } footer: {
                     Text(
-                        "Dati percorso © OpenStreetMap contributors, licenza ODbL. D+ e quota non sono stimati finché la sorgente non fornisce un profilo altimetrico affidabile."
+                        "Le tracce OSM potrebbero non arrivare alla vetta e potrebbero non comprendere avvicinamento/rientro. Le relazioni disconnesse vengono escluse. © OpenStreetMap contributors, ODbL."
                     )
                 }
             }
@@ -153,6 +198,7 @@ struct RoutePlannerSearchView: View {
             if !searchText.isEmpty &&
                localRoutes.isEmpty &&
                onlineRoutes.isEmpty &&
+               ascentGuides.isEmpty &&
                !isSearchingOnline &&
                onlineError == nil {
                 Section {
@@ -165,7 +211,7 @@ struct RoutePlannerSearchView: View {
         }
         .scrollContentBackground(.hidden)
         .aretScreenBackground()
-        .navigationTitle("Pianifica")
+        .navigationTitle("Cerca una vetta o via")
         .toolbar {
             ToolbarItem(
                 placement: .topBarTrailing
@@ -207,7 +253,7 @@ struct RoutePlannerSearchView: View {
 
                 if route.origin ==
                     .openStreetMap {
-                    Text("OSM")
+                    Text(route.kind == .alpine ? "TECNICO OSM" : "OSM")
                         .font(
                             .caption2
                             .weight(.bold)
@@ -280,7 +326,7 @@ struct RoutePlannerSearchView: View {
 
             if onlineRoutes.isEmpty {
                 onlineError =
-                    "Nessun percorso hiking OpenStreetMap trovato entro circa 25 km dalla località."
+                    "Nessuna relazione di percorso OSM continua trovata nelle vicinanze. Vedi le vie documentate sopra, se disponibili. La copertura OSM non è completa."
             }
         } catch {
             onlineError =
@@ -335,6 +381,18 @@ struct RoutePlanningView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 routeHeader
+
+                if plannedRoute.origin == .openStreetMap &&
+                   plannedRoute.kind == .alpine {
+                    Label(
+                        "Tratto di ferrata o via tecnica OSM: potrebbe mancare l’avvicinamento e la discesa. Non è una traccia verificata per raggiungere la vetta.",
+                        systemImage: "exclamationmark.triangle.fill"
+                    )
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.orange)
+                    .aretGlassCard(cornerRadius: 16, padding: 13)
+                }
+
                 HikingRoutePreview(route: plannedRoute)
                 planningControls
 
