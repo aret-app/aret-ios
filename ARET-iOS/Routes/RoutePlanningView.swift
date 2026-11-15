@@ -1266,7 +1266,7 @@ struct RoutePlanningView: View {
 
         if let highestPoint =
             plannedRoute.coordinates
-                .filter { $0.altitude != nil }
+                .filter({ $0.altitude != nil })
                 .max(by: {
                     ($0.altitude ?? -.infinity) <
                     ($1.altitude ?? -.infinity)

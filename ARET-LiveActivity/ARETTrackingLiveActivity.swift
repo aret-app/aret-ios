@@ -48,8 +48,7 @@ struct ARETTrackingLiveActivity: Widget {
                 ) {
                     Text(
                         timerInterval:
-                            context.attributes.startedAt...
-                                Date.distantFuture,
+                            context.attributes.startedAt...Date.distantFuture,
                         countsDown: false
                     )
                     .font(
@@ -159,8 +158,7 @@ struct ARETTrackingLiveActivity: Widget {
                 ) {
                     Text(
                         timerInterval:
-                            context.attributes.startedAt...
-                                Date.distantFuture,
+                            context.attributes.startedAt...Date.distantFuture,
                         countsDown: false
                     )
                     .font(
