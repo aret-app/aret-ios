@@ -36,7 +36,7 @@ struct ExploreView: View {
 
     @AppStorage("aret.mapDisplayStyle")
     private var mapDisplayStyleRaw =
-        MapDisplayStyle.hybrid.rawValue
+        MapDisplayStyle.topographic.rawValue
 
     @State private var camera:
         MapCameraPosition = .camera(
@@ -59,11 +59,13 @@ struct ExploreView: View {
     @State private var completedActivity:
         RecordedActivity?
 
+    @State private var didCenterOnFirstGPSFix = false
+
     private var mapDisplayStyle:
         MapDisplayStyle {
         MapDisplayStyle(
             rawValue: mapDisplayStyleRaw
-        ) ?? .hybrid
+        ) ?? .topographic
     }
 
     private var selectedMapStyle:
@@ -191,8 +193,12 @@ struct ExploreView: View {
             .interactiveDismissDisabled()
         }
         .task {
-            locationManager
-                .requestPermission()
+            locationManager.requestPermission()
+            centerOnFirstGPSFixIfNeeded()
+        }
+        .onChange(of: locationManager.location?.timestamp) {
+            _, _ in
+            centerOnFirstGPSFixIfNeeded()
         }
         .task(
             id: weatherRefreshKey
@@ -1028,6 +1034,19 @@ struct ExploreView: View {
             activityStore.add(activity)
             completedActivity = activity
         }
+    }
+
+    private func centerOnFirstGPSFixIfNeeded() {
+        guard
+            !didCenterOnFirstGPSFix,
+            routeLibrary.activeRoute == nil,
+            locationManager.location != nil
+        else {
+            return
+        }
+
+        didCenterOnFirstGPSFix = true
+        centerOnUser()
     }
 
     private func centerOnUser() {
