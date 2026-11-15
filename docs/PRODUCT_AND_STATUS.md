@@ -57,7 +57,7 @@ Questi flussi necessitano test sul dispositivo.
 | Mappa Apple + percorso GPS | Presente | Da ripetere dopo gli ultimi cambi |
 | Mappa OSM MapLibre / OpenFreeMap | Presente come modalità beta online | Xcode + rendering/provider ancora da verificare |
 | Ricerca vette Apuane/Appennino | Indice OSM dinamico + scorciatoie | Completezza/tempi di caricamento da verificare |
-| Vie documentate | 10 schede con fonti esterne in 8 cime, tra Apuane e Appennino | Aggiornamento fonti da verificare |
+| Vie documentate | 21 schede brevi con link a fonti (sia Apuane sia Appennino) | Nessuna dichiarata traccia GPS verificata; verifiche sul campo mancanti |
 | Ricerca vie/tracce regionali | Query Overpass, filtro regione, controllo geometria | Copertura e qualità OSM non garantite |
 | Classificazione T/E/EE/tecnica | Solo quando disponibile da fonte/tag | Validazione campo per campo necessaria |
 | Import/export GPX | Presente | Test con file reali lunghi e incompleti |
