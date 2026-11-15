@@ -8,6 +8,7 @@ struct MountainWeatherDashboard: View {
     let window: WeatherWindow
     let route: RouteLibraryItem
     let retrievedAt: Date
+    let samplingPoints: Int
 
     private var assessment: HikingWeatherAssessment {
         HikingWeatherAssessment.evaluate(
@@ -155,7 +156,9 @@ struct MountainWeatherDashboard: View {
                     .font(.caption.weight(.bold))
                     .tracking(1.2)
 
-                Text("Previsioni per il percorso selezionato")
+                Text(
+                    "Previsioni su \(samplingPoints) \(samplingPoints == 1 ? "punto" : "punti") dell'itinerario"
+                )
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
