@@ -4,6 +4,19 @@
 
 ARET is an Apple-first mountain companion for hiking, climbing and alpinism.
 
+## Hiking-first roadmap
+
+**The immediate product is ARET Hiking:** discover a trail, check the
+real route map/elevation profile, inspect weather, and start recording
+with as few steps as possible. Core hiking features are planned to
+remain free and usable without creating an account.
+
+See [Hiking roadmap and field-test criteria](docs/HIKING_PLAN.md).
+
+This beta currently uses **Apple MapKit**. A genuinely custom
+OpenStreetMap / MapLibre topographic layer and downloadable offline
+maps are planned, **not yet implemented**.
+
 ## Field Test 0.1
 
 The first field build is intentionally narrow:
@@ -90,10 +103,11 @@ The Watch workout and HealthKit behavior must be tested on physical Apple device
 
 1. Open ARET on iPhone.
 2. Open **Percorsi** and choose the field-test route.
-3. Return to **Mappa** and check the white reference route.
+3. Return to **Esplora** and check the orange reference route.
 4. Start the hike from ARET on Apple Watch.
 5. Confirm heart rate, elapsed time and distance update on Watch.
-6. Start iPhone route tracking if you want ARET’s orange recorded line.
+6. Check that starting the Watch workout automatically starts the
+   mirrored iPhone recording. If not, report it as a field-test bug.
 7. Put the iPhone in your pocket and verify background tracking.
 8. Intentionally move a safe distance away from the GPX to test the reference-route warning.
 9. Open the SOS panel and verify coordinates/altitude/accuracy.
