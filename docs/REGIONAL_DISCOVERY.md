@@ -70,6 +70,8 @@ The app currently queries:
 - OSM `relation[type=route][route=hiking|foot|via_ferrata]` around
   identified summits.
 - OSM `way[highway=via_ferrata]` or `way[via_ferrata_scale]` nearby.
+- OSM `way[highway=path|footway]` within about **2.2 km** of a
+  resolved summit (or named segments when name-search fallback is used).
 - When no summit can be located, **name-matching route/ferrata** data
   from the pilot area boxes.
 
@@ -78,6 +80,12 @@ and endpoints can be joined within a **3 metre tolerance**; gaps
 larger than that are rejected. This is still an algorithmic quality
 filter, not a human validation. Relations with missing way members
 are discarded. Names/difficulty come only from OSM tags when present.
+
+The regional search also lists standalone **OSM path sections** with
+`sac_scale` or `cai_scale` when present in way tags. The app shows
+these in expandable map cards, **never** as full summit itineraries.
+At most 40 path sections are returned for UI prioritization; the
+first 18 appear in the list. No guarantee of total network coverage.
 
 A relation shown as **"Traccia OSM vicino alla località"** is not
 necessarily a complete ascent to the summit. A via ferrata segment
