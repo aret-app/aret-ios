@@ -68,6 +68,10 @@ watchOS ARETWatchApp                                         │
   OSM relation/way query, geometry validation and route mapping.
 - `ARET-iOS/Routes/MountainAscentGuide.swift`: curated source-backed
   Apuane/Appennino textual ascents (not verified GPX).
+- `ARET-iOS/Routes/ARETAdditionalAscentGuides.swift`: 11 extra source-linked
+  Apuane/Appennino outings from regional/national park published material.
+- `ARET-iOS/Routes/ARETOfficialRegionalSourcesView.swift`: primary
+  source directories in the search screen (Park trails, hikes, Apuane).
 - `ARET-iOS/Routes/MountainAscentGuideCard.swift` and
   `TechnicalSegmentPreview.swift`: UX for documented ascents and
   individual OSM ferrata segments.
