@@ -262,48 +262,50 @@ struct MountainWeatherDashboard: View {
     }
 
     private var essentialsGrid: some View {
-        LazyVGrid(
-            columns: [
-                GridItem(.flexible(), spacing: 10),
-                GridItem(.flexible(), spacing: 10)
-            ],
-            spacing: 10
-        ) {
-            metric(
-                title: "RAFFICHE A 10 M",
-                value: maxGust.map {
-                    "\(Int($0.rounded()))"
-                } ?? "—",
-                unit: "km/h",
-                symbol: "wind"
-            )
+        VStack(spacing: 10) {
+            LazyVGrid(
+                columns: [
+                    GridItem(.flexible(), spacing: 10),
+                    GridItem(.flexible(), spacing: 10)
+                ],
+                spacing: 10
+            ) {
+                metric(
+                    title: "RAFFICHE A 10 M",
+                    value: maxGust.map {
+                        "\(Int($0.rounded()))"
+                    } ?? "—",
+                    unit: "km/h",
+                    symbol: "wind"
+                )
 
-            metric(
-                title: "ZERO TERMICO",
-                value: freezingLevel.map {
-                    "\(Int($0.rounded()))"
-                } ?? "—",
-                unit: "m",
-                symbol: "snowflake"
-            )
+                metric(
+                    title: "ZERO TERMICO",
+                    value: freezingLevel.map {
+                        "\(Int($0.rounded()))"
+                    } ?? "—",
+                    unit: "m",
+                    symbol: "snowflake"
+                )
 
-            metric(
-                title: "PRECIPITAZIONI",
-                value: maxPrecipitationProbability.map {
-                    "\($0)"
-                } ?? "—",
-                unit: "%",
-                symbol: "cloud.rain.fill"
-            )
+                metric(
+                    title: "PRECIPITAZIONI",
+                    value: maxPrecipitationProbability.map {
+                        "\($0)"
+                    } ?? "—",
+                    unit: "%",
+                    symbol: "cloud.rain.fill"
+                )
 
-            metric(
-                title: "VISIBILITÀ MIN",
-                value: visibility.map {
-                    String(format: "%.1f", $0 / 1_000)
-                } ?? "—",
-                unit: "km",
-                symbol: "eye.fill"
-            )
+                metric(
+                    title: "VISIBILITÀ MIN",
+                    value: visibility.map {
+                        String(format: "%.1f", $0 / 1_000)
+                    } ?? "—",
+                    unit: "km",
+                    symbol: "eye.fill"
+                )
+            }
 
             if let wind = assessment.windAloftKPH,
                let height = assessment.windAloftHeightMeters {
@@ -325,11 +327,11 @@ struct MountainWeatherDashboard: View {
                     Spacer()
                 }
                 .padding(13)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
                     Color.aretSurface,
                     in: RoundedRectangle(cornerRadius: 17)
                 )
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }
