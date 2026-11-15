@@ -555,7 +555,9 @@ struct WeatherView: View {
                     spacing: 3
                 ) {
                     Text(
-                        "Finestra meteo favorevole"
+                        window.quality == .noClearWindow
+                            ? "Nessuna finestra meteo chiara"
+                            : "Finestra meteo da valutare"
                     )
                     .font(.headline)
 
@@ -614,6 +616,13 @@ struct WeatherView: View {
                 cornerRadius: 24,
                 style: .continuous
             )
+        )
+
+        HikingWeatherAdviceCard(
+            hours: todayHours,
+            window: window,
+            maximumRouteAltitudeMeters:
+                route.maximumAltitudeMeters
         )
     }
 
