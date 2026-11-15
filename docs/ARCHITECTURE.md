@@ -71,6 +71,8 @@ watchOS ARETWatchApp                                         │
 - `ARET-iOS/Routes/MountainAscentGuideCard.swift` and
   `TechnicalSegmentPreview.swift`: UX for documented ascents and
   individual OSM ferrata segments.
+- `RegionalTrailSegmentCard.swift`: expandable map+tags for standalone
+  nearby OSM path/footway segments; these are **not complete trails**.
 - `ARET-iOS/Routes/RoutePlanningView.swift`: route detail, date selection,
   search UI, meteo integration; avoid bloating further — prefer subviews.
 - `ARET-iOS/Routes/RouteLibraryStore.swift`: selected route and
@@ -155,7 +157,7 @@ named OSM relations / technical ways in chosen region
    ↓
 OnlineRouteSearchService, Overpass POST
    ↓
-continuous relation geometry / standalone ferrata ways
+continuous relation geometry / standalone ferrata ways / nearby path sections
    ↓
 RoutePlanningView → profile/weather/share GPX/selection
 ```
