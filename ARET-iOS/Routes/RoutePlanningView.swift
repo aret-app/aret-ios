@@ -22,6 +22,7 @@ struct RoutePlannerSearchView: View {
     @State private var showSummitDirectory = false
     @State private var visibleSummitCount = 35
     @State private var activeSearchID = UUID()
+    @State private var triggerSearchAfterTextChange = false
     @State private var onlineRoutes: [RouteLibraryItem] = []
     @State private var technicalSegments: [OSMTechnicalSegment] = []
     @State private var isSearchingOnline = false
@@ -480,6 +481,14 @@ struct RoutePlannerSearchView: View {
             if selectedSummit?.name != newValue {
                 selectedSummit = nil
             }
+
+            if triggerSearchAfterTextChange {
+                // Run only *after* onChange invalidated older requests:
+                // otherwise the completion of the just-started search
+                // can be wrongly discarded as stale.
+                triggerSearchAfterTextChange = false
+                Task { await searchOnline() }
+            }
         }
         .onChange(of: discoveryScope) { _, _ in
             activeSearchID = UUID()
@@ -514,8 +523,13 @@ struct RoutePlannerSearchView: View {
         peak: ARETPeak? = nil
     ) {
         selectedSummit = peak
-        searchText = name
-        Task { await searchOnline() }
+
+        if searchText == name {
+            Task { await searchOnline() }
+        } else {
+            triggerSearchAfterTextChange = true
+            searchText = name
+        }
     }
 
     private func plannerRouteRow(
