@@ -56,6 +56,12 @@ struct PrivacyView: View {
                     )
 
                     privacyRow(
+                        icon: "map.circle.fill",
+                        title: "ARET Sentieri (beta)",
+                        detail: "La modalità mappa OpenStreetMap usa MapLibre e scarica le tile vettoriali da OpenFreeMap. Il fornitore della cartografia riceve richieste tecniche per la zona visualizzata (inclusi gli indirizzi IP del dispositivo); ARET non gli invia l'intera cronologia delle attività."
+                    )
+
+                    privacyRow(
                         icon: "figure.hiking",
                         title: "Percorsi online",
                         detail: "Quando avvii esplicitamente una ricerca online, ARET interroga OpenStreetMap/Overpass per i percorsi hiking aperti nella zona cercata. Non invia la tua cronologia attività."
