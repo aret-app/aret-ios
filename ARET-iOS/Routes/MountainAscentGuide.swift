@@ -168,7 +168,7 @@ enum MountainAscentLibrary {
             sourceURL: URL(string: "https://www.parcoappennino.it/percorso.php?id=89")!,
             searchTerms: ["monte acuto", "acuto", "lagastrello", "rifugio sarzana"]
         )
-    ] + ARETAdditionalAscentGuides.entries
+    ] + ARETAdditionalAscentGuides.entries + ARETCornoLaNudaAscentGuides.entries
 
     static func results(for query: String) -> [MountainAscentGuide] {
         let normalized = normalize(query)
